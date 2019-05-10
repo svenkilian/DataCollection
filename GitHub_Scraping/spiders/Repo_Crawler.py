@@ -19,12 +19,14 @@ class RepoCrawlerSpider(scrapy.Spider):
     allowed_domains = ['github.com']
 
     # Retrieve repository list from json file and filter for content
-    data = pd.read_json('C:/Users/svenk/Google Drive/[04] Stuff/Query Results/repositories.json', lines=True)
-    cnn_data = data[data['repo_name'].str.contains('cnn')]
+    # data = pd.read_json('C:/Users/svenk/Google Drive/[04] Stuff/Query Results/repositories.json', lines=True)
+    # cnn_data = data[data['repo_name'].str.contains('cnn')]
+
+    data = pd.read_json('C:/Users/svenk/PycharmProjects/GitHub_Scraping/Repo_Search_Results.json')
 
     # Initialize and populate list from Pandas DataFrame
     repo_list = []
-    for item in cnn_data['repo_name']:
+    for item in data['full_name']:
         repo_list.append('https://github.com/' + item)
 
     # Set start urls
