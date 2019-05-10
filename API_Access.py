@@ -4,6 +4,11 @@ import json
 
 query = 'CNN+keras+in:readme&sort=stars&order=desc'
 url = 'https://api.github.com/search/repositories?q=' + query
+with open('GitHub Access Token.txt', 'r') as f:
+    access_token = f.read()
+
+print(access_token)
+
 headers = '"Authorization: token e2db3762c08d2dcb1745478a2ed3aad254fde852" https://api.github.com'
 response = requests.get(url, headers)
 
