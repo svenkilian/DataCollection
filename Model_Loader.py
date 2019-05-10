@@ -1,3 +1,7 @@
+"""
+This class extracts tbe model architecture information from a h5 file
+"""
+
 import h5py
 import json
 
