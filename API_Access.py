@@ -19,7 +19,7 @@ if __name__ == "__main__":
         access_token = f.read()
 
     # Specify request header for authentication
-    headers = '"Authorization: token e2db3762c08d2dcb1745478a2ed3aad254fde852" https://api.github.com'
+    headers = '"Authorization: token ' + access_token + '" https://api.github.com'
 
     # Submit request and save response
     response = requests.get(url, headers)
