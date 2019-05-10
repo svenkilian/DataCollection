@@ -10,6 +10,7 @@ from scrapy.conf import settings
 from scrapy.exceptions import DropItem
 from scrapy import log
 
+
 class GithubScrapingPipeline(object):
 
     def __init__(self):
@@ -21,7 +22,6 @@ class GithubScrapingPipeline(object):
         self.collection = db[settings['MONGODB_COLLECTION']]
 
     def process_item(self, item, spider):
-
         self.collection.insert(dict(item))
         log.msg('Object added to Database',
                 level=log.DEBUG, spider=spider)

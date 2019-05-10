@@ -4,6 +4,7 @@
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from GitHub_Scraping.items import GithubScrapingItem
+from scrapy.utils.project import get_project_settings
 import pandas as pd
 import json
 
@@ -69,8 +70,8 @@ class RepoCrawlerSpider(scrapy.Spider):
 
 
 if __name__ == "__main__":
-    process = CrawlerProcess()
-    process.crawl(RepoCrawlerSpider)
+    process = CrawlerProcess(get_project_settings())
+    process.crawl('Repo_Crawler')
     process.start()
 
     # scraped_data = [json.loads(line) for line in

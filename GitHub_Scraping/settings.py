@@ -9,13 +9,14 @@
 #     https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
+
 BOT_NAME = 'GitHub_Scraping'
 
 SPIDER_MODULES = ['GitHub_Scraping.spiders']
 NEWSPIDER_MODULE = 'GitHub_Scraping.spiders'
 
 FEED_FORMAT = 'csv'
-FEED_URI = 'results.csv'
+FEED_URI = '../../data/results.csv'
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent

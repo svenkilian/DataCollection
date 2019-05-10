@@ -2,6 +2,8 @@
 
 import scrapy
 from scrapy.crawler import CrawlerProcess
+from scrapy.utils.project import get_project_settings
+
 from GitHub_Scraping.items import GitHubRepositoryItem
 
 
@@ -9,7 +11,7 @@ class GitHub_Search_Spider(scrapy.Spider):
     name = 'GitHub_Search'
     allowed_domains = ['github.com']
 
-    start_urls = ['https://github.com/search?l=Python&p=' + str(p) + '&q=keras&type=Repositories' for p in range(1, 20)]
+    start_urls = ['https://github.com/search?l=Python&p=' + str(p) + '&q=keras&type=Repositories' for p in range(1, 10)]
 
     def parse(self, response):
         print('Processing: ' + response.url)
@@ -23,6 +25,6 @@ class GitHub_Search_Spider(scrapy.Spider):
 
 
 if __name__ == "__main__":
-    process = CrawlerProcess()
-    process.crawl(GitHub_Search_Spider)
+    process = CrawlerProcess(get_project_settings())
+    process.crawl('GitHub_Search')
     process.start()
