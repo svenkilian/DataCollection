@@ -3,7 +3,6 @@
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from GitHub_Scraping.items import GitHubRepositoryItem
-import pandas as pd
 
 
 class GitHub_Search_Spider(scrapy.Spider):

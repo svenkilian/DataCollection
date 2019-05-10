@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+
+
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from GitHub_Scraping.items import GithubScrapingItem
@@ -7,20 +9,30 @@ import json
 
 
 class RepoCrawlerSpider(scrapy.Spider):
+    """
+    This class implements a repository crawler which, when given a list of GitHub Repository links,
+    crawls through the repositories and creates a json file including the relevant Repository information
+    """
+
     name = 'Repo_Crawler'
     allowed_domains = ['github.com']
 
+    # Retrieve repository list from json file and filter for content
     data = pd.read_json('C:/Users/svenk/Google Drive/[04] Stuff/Query Results/repositories.json', lines=True)
     cnn_data = data[data['repo_name'].str.contains('cnn')]
+
+    # Initialize and populate list from Pandas DataFrame
     repo_list = []
     for item in cnn_data['repo_name']:
         repo_list.append('https://github.com/' + item)
 
+    # Set start urls
     start_urls = repo_list
 
     def parse(self, response):
         print('Processing: ' + response.url)
 
+        # Crawl repository elements from page
         repo_names = response.xpath("//strong[@itemprop='name']/a/text()").extract()
         repo_desc = response.xpath("//span[@itemprop='about']/text()").extract()
         repo_owner = response.xpath("//span[@itemprop='author']/a/text()").extract()
@@ -35,12 +47,13 @@ class RepoCrawlerSpider(scrapy.Spider):
         repo_forks = response.xpath(
             "//ul[@class='pagehead-actions']//a[@class='social-count' and contains(@aria-label, 'forked')]/text()").extract()
 
+        # Consolidate data into list
         row_data = zip(repo_names, repo_desc, repo_owner, repo_ref, repo_dcount, repo_last_mod, repo_watch,
                        repo_stars, repo_forks)
 
+        # Populate scraping item with data
         for repo in row_data:
             item = GithubScrapingItem()
-
             item['page'] = response.url
             item['repo_name'] = repo[1].strip()
             item['repo_link'] = 'https://github.com/' + repo[2].strip() + '/' + repo[0]
