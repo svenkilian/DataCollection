@@ -1,5 +1,5 @@
 """
-This class extracts tbe model architecture information from a h5 file
+This class extracts the model architecture information from a h5 file
 """
 
 import h5py
