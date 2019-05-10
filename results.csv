@@ -1,0 +1,499 @@
+repo_watch,repo_name,repo_owner,repo_link,repo_dcount,repo_ref,repo_forks,repo_last_mod,repo_stars,page,repo_desc
+1,Food-Images-CNN,https://github.com/mclainwilkinson,h,,,1,2018-12-05T18:17:48Z,0,https://github.com/mclainwilkinson/Food-Images-CNN,classifying images of food using a convolution neural network built with PyTorch
+1,FoodNet,https://github.com/vidhur2k,h,,,3,2018-09-10T03:08:23Z,3,https://github.com/vidhur2k/FoodNet,A Convolutional Neural Network for food item recognition
+page,repo_dcount,repo_owner,repo_ref,repo_watch,repo_forks,repo_stars,repo_name,repo_desc,repo_link,repo_last_mod
+https://github.com/mclainwilkinson/Food-Images-CNN,,https://github.com/mclainwilkinson,,1,1,0,classifying images of food using a convolution neural network built with PyTorch,,h,2018-12-05T18:17:48Z
+https://github.com/vidhur2k/FoodNet,,https://github.com/vidhur2k,,1,3,3,A Convolutional Neural Network for food item recognition,,h,2018-09-10T03:08:23Z
+repo_forks,repo_name,repo_ref,repo_owner,page,repo_dcount,repo_stars,repo_watch,repo_desc,repo_last_mod,repo_link
+3,A Convolutional Neural Network for food item recognition,,https://github.com/vidhur2k,https://github.com/vidhur2k/FoodNet,,3,1,,2018-09-10T03:08:23Z,h
+1,classifying images of food using a convolution neural network built with PyTorch,,https://github.com/mclainwilkinson,https://github.com/mclainwilkinson/Food-Images-CNN,,0,1,,2018-12-05T18:17:48Z,h
+repo_stars,repo_last_mod,repo_watch,repo_ref,page,repo_owner,repo_dcount,repo_forks,repo_name,repo_desc,repo_link
+0,2018-12-05T18:17:48Z,1,,https://github.com/mclainwilkinson/Food-Images-CNN,https://github.com/mclainwilkinson,,1,classifying images of food using a convolution neural network built with PyTorch,,h
+3,2018-09-10T03:08:23Z,1,,https://github.com/vidhur2k/FoodNet,https://github.com/vidhur2k,,3,A Convolutional Neural Network for food item recognition,,h
+repo_owner,repo_desc,page,repo_stars,repo_watch,repo_forks,repo_link,repo_name,repo_last_mod,repo_ref,repo_dcount
+mclainwilkinson,,https://github.com/mclainwilkinson/Food-Images-CNN,0,1,1,https://github.com/mclainwilkinson/Food-Images-CNN,classifying images of food using a convolution neural network built with PyTorch,2018-12-05T18:17:48Z,,
+vidhur2k,,https://github.com/vidhur2k/FoodNet,3,1,3,https://github.com/vidhur2k/FoodNet,A Convolutional Neural Network for food item recognition,2018-09-10T03:08:23Z,,
+repo_ref,repo_owner,repo_dcount,repo_stars,repo_link,repo_watch,repo_forks,repo_desc,page,repo_last_mod,repo_name
+,https://github.com/mclainwilkinson,,0,https://github.com/mclainwilkinson/Food-Images-CNN,1,1,,https://github.com/mclainwilkinson/Food-Images-CNN,2018-12-05T18:17:48Z,classifying images of food using a convolution neural network built with PyTorch
+,https://github.com/vidhur2k,,3,https://github.com/vidhur2k/FoodNet,1,3,,https://github.com/vidhur2k/FoodNet,2018-09-10T03:08:23Z,A Convolutional Neural Network for food item recognition
+repo_forks,repo_link,repo_ref,repo_watch,repo_dcount,page,repo_desc,repo_name,repo_owner,repo_stars,repo_last_mod
+1,https://github.com/mclainwilkinson/Food-Images-CNN,,1,,https://github.com/mclainwilkinson/Food-Images-CNN,,classifying images of food using a convolution neural network built with PyTorch,https://github.com/mclainwilkinson,0,2018-12-05T18:17:48Z
+3,https://github.com/vidhur2k/FoodNet,,1,,https://github.com/vidhur2k/FoodNet,,A Convolutional Neural Network for food item recognition,https://github.com/vidhur2k,3,2018-09-10T03:08:23Z
+repo_owner,repo_watch,repo_link,repo_name,repo_last_mod,page,repo_desc,repo_forks,repo_stars,repo_dcount,repo_ref
+https://github.com/mclainwilkinson,1,https://github.com/mclainwilkinson/Food-Images-CNN,classifying images of food using a convolution neural network built with PyTorch,2018-12-05T18:17:48Z,https://github.com/mclainwilkinson/Food-Images-CNN,,1,0,,
+https://github.com/vidhur2k,1,https://github.com/vidhur2k/FoodNet,A Convolutional Neural Network for food item recognition,2018-09-10T03:08:23Z,https://github.com/vidhur2k/FoodNet,,3,3,,
+repo_last_mod,repo_dcount,repo_watch,repo_ref,repo_name,page,repo_owner,repo_link,repo_stars,repo_forks,repo_desc
+2018-12-05T18:17:48Z,,1,,classifying images of food using a convolution neural network built with PyTorch,https://github.com/mclainwilkinson/Food-Images-CNN,https://github.com/mclainwilkinson,https://github.com/mclainwilkinson/Food-Images-CNN,0,1,
+2018-09-10T03:08:23Z,,1,,A Convolutional Neural Network for food item recognition,https://github.com/vidhur2k/FoodNet,https://github.com/vidhur2k,https://github.com/vidhur2k/FoodNet,3,3,
+repo_link,repo_last_mod,repo_ref,repo_forks,repo_dcount,repo_watch,page,repo_stars,repo_owner,repo_desc,repo_name
+https://github.com/mclainwilkinson/Food-Images-CNN,2018-12-05T18:17:48Z,,1,,1,https://github.com/mclainwilkinson/Food-Images-CNN,0,https://github.com/mclainwilkinson,,classifying images of food using a convolution neural network built with PyTorch
+https://github.com/vidhur2k/FoodNet,2018-09-10T03:08:23Z,,3,,1,https://github.com/vidhur2k/FoodNet,3,https://github.com/vidhur2k,,A Convolutional Neural Network for food item recognition
+repo_forks,repo_dcount,repo_owner,repo_watch,repo_ref,repo_desc,repo_name,repo_stars,repo_last_mod,repo_link,page
+219,,https://github.com/yoonkim,62,,,LSTM language model with CNN over characters,776,2016-03-15T17:40:30Z,https://github.com/yoonkim/lstm-char-cnn,https://github.com/yoonkim/lstm-char-cnn
+249,,https://github.com/carpedm20,62,,,in progress,717,2017-04-02T18:16:47Z,https://github.com/carpedm20/lstm-char-cnn-tensorflow,https://github.com/carpedm20/lstm-char-cnn-tensorflow
+115,,https://github.com/jcjohnson,39,,,Use CNNs to generate images,490,2015-07-01T22:51:42Z,https://github.com/jcjohnson/cnn-vis,https://github.com/jcjohnson/cnn-vis
+199,,https://github.com/jzbontar,53,,,Stereo Matching by Training a Convolutional Neural Network to Compare Image Patches,528,2017-08-18T21:25:14Z,https://github.com/jzbontar/mc-cnn,https://github.com/jzbontar/mc-cnn
+379,,https://github.com/rbgirshick,27,,,Caffe fork that supports Fast R-CNN,312,2015-08-09T08:45:09Z,https://github.com/rbgirshick/caffe-fast-rcnn,https://github.com/rbgirshick/caffe-fast-rcnn
+47,,https://github.com/gnawice,12,,,mojo cnn: c++ convolutional neural network,135,2018-07-11T16:51:51Z,https://github.com/gnawice/mojo-cnn,https://github.com/gnawice/mojo-cnn
+77,,https://github.com/vedaldi,13,,,A VGG practical on convolutional neural networks,145,2017-11-27T16:26:30Z,https://github.com/vedaldi/practical-cnn,https://github.com/vedaldi/practical-cnn
+74,,https://github.com/gidariss,13,,,Object detection via a multi-region & semantic segmentation-aware CNN model,100,2016-04-06T17:40:31Z,https://github.com/gidariss/mrcnn-object-detection,https://github.com/gidariss/mrcnn-object-detection
+137,,https://github.com/s-gupta,27,,,Learning Rich Features from RGB-D Images for Object Detection and Segmentation,273,2016-10-07T05:34:04Z,https://github.com/s-gupta/rcnn-depth,https://github.com/s-gupta/rcnn-depth
+74,,https://github.com/mitmul,15,,,Semantic Segmentation for Aerial / Satellite Images with Convolutional Neural Networks including an unofficial implementation of Volodymyr Mnih's methods,223,2017-12-27T04:01:47Z,https://github.com/mitmul/ssai-cnn,https://github.com/mitmul/ssai-cnn
+107,,https://github.com/jimmy-ren,17,,,Vectorized implementation of convolutional neural networks (CNN) in Matlab for both visual recognition and image processing.,106,2016-04-02T09:32:44Z,https://github.com/jimmy-ren/vcnn_double-bladed,https://github.com/jimmy-ren/vcnn_double-bladed
+120,,https://github.com/taolei87,23,,,Recurrent & convolutional neural network modules,302,2018-01-13T00:30:48Z,https://github.com/taolei87/rcnn,https://github.com/taolei87/rcnn
+65,,https://github.com/aosokin,16,,,"Code for ICCV 2015 paper ""Context-aware CNNs for person head detection""",162,2016-09-21T18:09:33Z,https://github.com/aosokin/cnn_head_detection,https://github.com/aosokin/cnn_head_detection
+99,,https://github.com/suhangpro,14,,,Multi-view CNN (MVCNN) for shape recognition,209,2019-01-03T20:27:20Z,https://github.com/suhangpro/mvcnn,https://github.com/suhangpro/mvcnn
+268,,https://github.com/ijkguo,43,,,Parallel Faster R-CNN implementation with MXNet.,607,2018-08-25T17:46:45Z,https://github.com/ijkguo/mx-rcnn,https://github.com/ijkguo/mx-rcnn
+42,,https://github.com/chengtaipu,11,,,Low-rank convolutional neural networks,78,2016-03-24T02:37:11Z,https://github.com/chengtaipu/lowrankcnn,https://github.com/chengtaipu/lowrankcnn
+66,,https://github.com/charlesq34,16,,,Volumetric CNN for feature extraction and object classification on 3D data.,166,2017-04-19T18:55:33Z,https://github.com/charlesq34/3dcnn.torch,https://github.com/charlesq34/3dcnn.torch
+20,,https://github.com/jhjin,6,,,Flattened convolutional neural networks (1D convolution modules for Torch nn),58,2015-09-17T17:08:00Z,https://github.com/jhjin/flattened-cnn,https://github.com/jhjin/flattened-cnn
+46,,https://github.com/ecobost,8,,,Using Convolutional Neural Networks (CNN) for Semantic Segmentation of Breast Cancer Lesions (BRCA). Master's thesis,60,2017-04-22T05:25:28Z,https://github.com/ecobost/cnn4brca,https://github.com/ecobost/cnn4brca
+13,,https://github.com/vedaldi,5,,,A CNN practical focusing on image to image regression,21,2016-03-22T13:47:49Z,https://github.com/vedaldi/practical-cnn-reg,https://github.com/vedaldi/practical-cnn-reg
+25,,https://github.com/pathak22,5,,,[ICCV 2015] Framework for optimizing CNNs with linear constraints for Semantic Segmentation,53,2016-05-03T15:59:17Z,https://github.com/pathak22/ccnn,https://github.com/pathak22/ccnn
+51,,https://github.com/xuzhenqi,8,,,This is a matlab-code implementation of convolutional neural network,56,2016-11-22T10:03:26Z,https://github.com/xuzhenqi/cnn,https://github.com/xuzhenqi/cnn
+90,,https://github.com/zhengshou,10,,,Segment-CNN: A Framework for Temporal Action Localization in Untrimmed Videos via Multi-stage CNNs,172,2019-03-02T20:25:16Z,https://github.com/zhengshou/scnn,https://github.com/zhengshou/scnn
+11,,https://github.com/kjchavez,4,,,Project for CS 231N,29,2017-09-23T15:42:40Z,https://github.com/kjchavez/cnn-project,https://github.com/kjchavez/cnn-project
+106,,https://github.com/willard-yuan,26,,,,256,2018-12-26T15:13:12Z,https://github.com/willard-yuan/flask-keras-cnn-image-retrieval,https://github.com/willard-yuan/flask-keras-cnn-image-retrieval
+4,,https://github.com/vitruvianscience,4,,,"Implementation of ""Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks""",9,2015-11-07T21:50:41Z,https://github.com/vitruvianscience/faster_r_cnn,https://github.com/vitruvianscience/faster_r_cnn
+81,,https://github.com/DeepCompute,14,,,基于Java实现CNN，并附MNIST和语音（MFCC特征）性别识别示例。,91,2016-08-21T08:14:21Z,https://github.com/DeepCompute/cnn,https://github.com/DeepCompute/cnn
+17,,https://github.com/libcnn,6,,,libcnn++,22,2015-11-16T08:04:24Z,https://github.com/libcnn/libcnn,https://github.com/libcnn/libcnn
+6,,https://github.com/johannesu,3,,,Cell detection using a convolutional neueral network,16,2019-04-17T19:33:55Z,https://github.com/johannesu/cnn-cells,https://github.com/johannesu/cnn-cells
+10,,https://github.com/sibosutd,3,,,Use CNN to classify time series data for activity recognition,21,2016-01-14T06:55:52Z,https://github.com/sibosutd/cnn-timeseries,https://github.com/sibosutd/cnn-timeseries
+106,,https://github.com/indiejoseph,26,,,CNN for Chinese Text Classification in Tensorflow,226,2016-07-25T06:45:41Z,https://github.com/indiejoseph/cnn-text-classification-tf-chinese,https://github.com/indiejoseph/cnn-text-classification-tf-chinese
+21,,https://github.com/sandeepraju,2,,,Image deblurring with Convolutional Neural Networks. Scripts & Neural network models available here,55,2016-02-27T07:58:55Z,https://github.com/sandeepraju/ihradis-cnn-deblur,https://github.com/sandeepraju/ihradis-cnn-deblur
+2,,https://github.com/pathak22,1,,,Branch of caffe for weakly supervised learning.,6,2015-12-09T13:26:51Z,https://github.com/pathak22/caffe-ccnn,https://github.com/pathak22/caffe-ccnn
+18,,https://github.com/intact-project,1,,,"This is supplementary material for the manuscript: ""Lung Pattern Classification for Interstitial Lung Diseases Using a Deep Convolutional Neural Network"" M. Anthimopoulos, S. Christodoulidis, L. Ebner, A. Christe and S. Mougiakakou, IEEE Transactions on Medical Imaging (2016)",15,2016-04-13T08:16:40Z,https://github.com/intact-project/ild-cnn,https://github.com/intact-project/ild-cnn
+repo_forks,repo_stars,repo_desc,repo_last_mod,repo_ref,repo_watch,repo_dcount,repo_name,repo_link,repo_owner,page
+219,776,,2016-03-15T17:40:30Z,,62,,LSTM language model with CNN over characters,https://github.com/yoonkim/lstm-char-cnn,https://github.com/yoonkim,https://github.com/yoonkim/lstm-char-cnn
+249,717,,2017-04-02T18:16:47Z,,62,,in progress,https://github.com/carpedm20/lstm-char-cnn-tensorflow,https://github.com/carpedm20,https://github.com/carpedm20/lstm-char-cnn-tensorflow
+115,490,,2015-07-01T22:51:42Z,,39,,Use CNNs to generate images,https://github.com/jcjohnson/cnn-vis,https://github.com/jcjohnson,https://github.com/jcjohnson/cnn-vis
+47,135,,2018-07-11T16:51:51Z,,12,,mojo cnn: c++ convolutional neural network,https://github.com/gnawice/mojo-cnn,https://github.com/gnawice,https://github.com/gnawice/mojo-cnn
+379,312,,2015-08-09T08:45:09Z,,27,,Caffe fork that supports Fast R-CNN,https://github.com/rbgirshick/caffe-fast-rcnn,https://github.com/rbgirshick,https://github.com/rbgirshick/caffe-fast-rcnn
+199,528,,2017-08-18T21:25:14Z,,53,,Stereo Matching by Training a Convolutional Neural Network to Compare Image Patches,https://github.com/jzbontar/mc-cnn,https://github.com/jzbontar,https://github.com/jzbontar/mc-cnn
+77,145,,2017-11-27T16:26:30Z,,13,,A VGG practical on convolutional neural networks,https://github.com/vedaldi/practical-cnn,https://github.com/vedaldi,https://github.com/vedaldi/practical-cnn
+137,273,,2016-10-07T05:34:04Z,,27,,Learning Rich Features from RGB-D Images for Object Detection and Segmentation,https://github.com/s-gupta/rcnn-depth,https://github.com/s-gupta,https://github.com/s-gupta/rcnn-depth
+74,100,,2016-04-06T17:40:31Z,,13,,Object detection via a multi-region & semantic segmentation-aware CNN model,https://github.com/gidariss/mrcnn-object-detection,https://github.com/gidariss,https://github.com/gidariss/mrcnn-object-detection
+120,302,,2018-01-13T00:30:48Z,,23,,Recurrent & convolutional neural network modules,https://github.com/taolei87/rcnn,https://github.com/taolei87,https://github.com/taolei87/rcnn
+74,223,,2017-12-27T04:01:47Z,,15,,Semantic Segmentation for Aerial / Satellite Images with Convolutional Neural Networks including an unofficial implementation of Volodymyr Mnih's methods,https://github.com/mitmul/ssai-cnn,https://github.com/mitmul,https://github.com/mitmul/ssai-cnn
+107,106,,2016-04-02T09:32:44Z,,17,,Vectorized implementation of convolutional neural networks (CNN) in Matlab for both visual recognition and image processing.,https://github.com/jimmy-ren/vcnn_double-bladed,https://github.com/jimmy-ren,https://github.com/jimmy-ren/vcnn_double-bladed
+99,209,,2019-01-03T20:27:20Z,,14,,Multi-view CNN (MVCNN) for shape recognition,https://github.com/suhangpro/mvcnn,https://github.com/suhangpro,https://github.com/suhangpro/mvcnn
+65,162,,2016-09-21T18:09:33Z,,16,,"Code for ICCV 2015 paper ""Context-aware CNNs for person head detection""",https://github.com/aosokin/cnn_head_detection,https://github.com/aosokin,https://github.com/aosokin/cnn_head_detection
+268,607,,2018-08-25T17:46:45Z,,43,,Parallel Faster R-CNN implementation with MXNet.,https://github.com/ijkguo/mx-rcnn,https://github.com/ijkguo,https://github.com/ijkguo/mx-rcnn
+66,166,,2017-04-19T18:55:33Z,,16,,Volumetric CNN for feature extraction and object classification on 3D data.,https://github.com/charlesq34/3dcnn.torch,https://github.com/charlesq34,https://github.com/charlesq34/3dcnn.torch
+20,58,,2015-09-17T17:08:00Z,,6,,Flattened convolutional neural networks (1D convolution modules for Torch nn),https://github.com/jhjin/flattened-cnn,https://github.com/jhjin,https://github.com/jhjin/flattened-cnn
+42,78,,2016-03-24T02:37:11Z,,11,,Low-rank convolutional neural networks,https://github.com/chengtaipu/lowrankcnn,https://github.com/chengtaipu,https://github.com/chengtaipu/lowrankcnn
+46,60,,2017-04-22T05:25:28Z,,8,,Using Convolutional Neural Networks (CNN) for Semantic Segmentation of Breast Cancer Lesions (BRCA). Master's thesis,https://github.com/ecobost/cnn4brca,https://github.com/ecobost,https://github.com/ecobost/cnn4brca
+13,21,,2016-03-22T13:47:49Z,,5,,A CNN practical focusing on image to image regression,https://github.com/vedaldi/practical-cnn-reg,https://github.com/vedaldi,https://github.com/vedaldi/practical-cnn-reg
+25,53,,2016-05-03T15:59:17Z,,5,,[ICCV 2015] Framework for optimizing CNNs with linear constraints for Semantic Segmentation,https://github.com/pathak22/ccnn,https://github.com/pathak22,https://github.com/pathak22/ccnn
+51,56,,2016-11-22T10:03:26Z,,8,,This is a matlab-code implementation of convolutional neural network,https://github.com/xuzhenqi/cnn,https://github.com/xuzhenqi,https://github.com/xuzhenqi/cnn
+90,172,,2019-03-02T20:25:16Z,,10,,Segment-CNN: A Framework for Temporal Action Localization in Untrimmed Videos via Multi-stage CNNs,https://github.com/zhengshou/scnn,https://github.com/zhengshou,https://github.com/zhengshou/scnn
+11,29,,2017-09-23T15:42:40Z,,4,,Project for CS 231N,https://github.com/kjchavez/cnn-project,https://github.com/kjchavez,https://github.com/kjchavez/cnn-project
+4,9,,2015-11-07T21:50:41Z,,4,,"Implementation of ""Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks""",https://github.com/vitruvianscience/faster_r_cnn,https://github.com/vitruvianscience,https://github.com/vitruvianscience/faster_r_cnn
+17,22,,2015-11-16T08:04:24Z,,6,,libcnn++,https://github.com/libcnn/libcnn,https://github.com/libcnn,https://github.com/libcnn/libcnn
+106,256,,2018-12-26T15:13:12Z,,26,,,https://github.com/willard-yuan/flask-keras-cnn-image-retrieval,https://github.com/willard-yuan,https://github.com/willard-yuan/flask-keras-cnn-image-retrieval
+81,91,,2016-08-21T08:14:21Z,,14,,基于Java实现CNN，并附MNIST和语音（MFCC特征）性别识别示例。,https://github.com/DeepCompute/cnn,https://github.com/DeepCompute,https://github.com/DeepCompute/cnn
+6,16,,2019-04-17T19:33:55Z,,3,,Cell detection using a convolutional neueral network,https://github.com/johannesu/cnn-cells,https://github.com/johannesu,https://github.com/johannesu/cnn-cells
+10,21,,2016-01-14T06:55:52Z,,3,,Use CNN to classify time series data for activity recognition,https://github.com/sibosutd/cnn-timeseries,https://github.com/sibosutd,https://github.com/sibosutd/cnn-timeseries
+106,226,,2016-07-25T06:45:41Z,,26,,CNN for Chinese Text Classification in Tensorflow,https://github.com/indiejoseph/cnn-text-classification-tf-chinese,https://github.com/indiejoseph,https://github.com/indiejoseph/cnn-text-classification-tf-chinese
+21,55,,2016-02-27T07:58:55Z,,2,,Image deblurring with Convolutional Neural Networks. Scripts & Neural network models available here,https://github.com/sandeepraju/ihradis-cnn-deblur,https://github.com/sandeepraju,https://github.com/sandeepraju/ihradis-cnn-deblur
+18,15,,2016-04-13T08:16:40Z,,1,,"This is supplementary material for the manuscript: ""Lung Pattern Classification for Interstitial Lung Diseases Using a Deep Convolutional Neural Network"" M. Anthimopoulos, S. Christodoulidis, L. Ebner, A. Christe and S. Mougiakakou, IEEE Transactions on Medical Imaging (2016)",https://github.com/intact-project/ild-cnn,https://github.com/intact-project,https://github.com/intact-project/ild-cnn
+2,6,,2015-12-09T13:26:51Z,,1,,Branch of caffe for weakly supervised learning.,https://github.com/pathak22/caffe-ccnn,https://github.com/pathak22,https://github.com/pathak22/caffe-ccnn
+repo_name
+rcmalli/keras-mobilenet
+niitsuma/word2vec-keras-in-gensim
+yanpanlau/Keras-FlappyBird
+vict0rsch/deep_learning
+osh/kerlym
+kastnerkyle/deform-conv
+flyyufelix/DenseNet-Keras
+sksq96/pytorch-summary
+joeddav/devol
+keras-team/keras-applications
+keras-team/keras
+keras-rl/keras-rl
+GantMan/nsfw_model
+datalogue/keras-attention
+usernaamee/keras-wavenet
+keras-team/keras-preprocessing
+sonyisme/keras-recommendation
+EderSantana/seya
+alexander-rakhlin/CNN-for-Sentence-Classification-in-Keras
+jrosebr1/simple-keras-rest-api
+YerevaNN/R-NET-in-Keras
+bojone/vae
+yhenon/keras-spp
+titu1994/Snapshot-Ensembles
+tkipf/keras-gcn
+kuza55/keras-extras
+farizrahman4u/recurrentshop
+asingh33/CNNGestureRecognizer
+chen0040/keras-anomaly-detection
+yanpanlau/DDPG-Keras-Torcs
+oarriaga/face_classification
+eriklindernoren/Keras-GAN
+qqwweee/keras-yolo3
+fizyr/keras-retinanet
+farizrahman4u/seq2seq
+fchollet/deep-learning-models
+keras-team/keras-contrib
+jacobgil/keras-grad-cam
+matterport/Mask_RCNN
+allanzelener/YAD2K
+jinfagang/keras_frcnn
+raghakot/keras-resnet
+philipperemy/keras-tcn
+qubvel/segmentation_models
+rcmalli/keras-vggface
+sadeepj/crfasrnn_keras
+codekansas/keras-language-modeling
+philipperemy/keras-attention-mechanism
+flyyufelix/cnn_finetune
+raghakot/keras-vis
+titu1994/Image-Super-Resolution
+jacobgil/keras-dcgan
+maxpumperla/hyperas
+bstriner/keras-adversarial
+basveeling/wavenet
+titu1994/DenseNet
+maxpumperla/elephas
+jisungk/deepjazz
+pierluigiferrari/ssd_keras
+autonomio/talos
+aurora95/Keras-FCN
+YCG09/chinese_ocr
+lvapeab/nmt-keras
+amir-abdi/keras_to_tensorflow
+RubensZimbres/Repo-2017
+willard-yuan/flask-keras-cnn-image-retrieval
+broadinstitute/keras-rcnn
+jaungiers/LSTM-Neural-Network-for-Time-Series-Prediction
+Separius/BERT-keras
+axon-research/c3d-keras
+XifengGuo/CapsNet-Keras
+xiaochus/YOLOv3
+rcmalli/keras-squeezenet
+fchollet/hualos
+kentsommer/keras-inceptionV4
+farizrahman4u/qlearning4k
+keon/deep-q-learning
+keunwoochoi/kapre
+divamgupta/image-segmentation-keras
+raghakot/keras-text
+nicolov/segmentation_keras
+heuritech/convnets-keras
+nicolas-ivanov/debug_seq2seq
+nerox8664/pytorch2keras
+xiaochus/MobileNetV2
+jacobgil/keras-cam
+experiencor/keras-yolo3
+qubvel/classification_models
+cerndb/dist-keras
+titu1994/Keras-Classification-Models
+repo_name
+XifengGuo/CapsNet-Keras
+xiaochus/YOLOv3
+rcmalli/keras-squeezenet
+fchollet/hualos
+kentsommer/keras-inceptionV4
+farizrahman4u/qlearning4k
+keon/deep-q-learning
+keunwoochoi/kapre
+divamgupta/image-segmentation-keras
+raghakot/keras-text
+jinfagang/keras_frcnn
+raghakot/keras-resnet
+philipperemy/keras-tcn
+qubvel/segmentation_models
+rcmalli/keras-vggface
+sadeepj/crfasrnn_keras
+codekansas/keras-language-modeling
+titu1994/Image-Super-Resolution
+jacobgil/keras-dcgan
+maxpumperla/hyperas
+kastnerkyle/deform-conv
+flyyufelix/DenseNet-Keras
+sksq96/pytorch-summary
+EderSantana/seya
+alexander-rakhlin/CNN-for-Sentence-Classification-in-Keras
+jrosebr1/simple-keras-rest-api
+YerevaNN/R-NET-in-Keras
+bojone/vae
+yhenon/keras-spp
+titu1994/Snapshot-Ensembles
+aurora95/Keras-FCN
+YCG09/chinese_ocr
+lvapeab/nmt-keras
+keras-team/keras
+keras-rl/keras-rl
+eriklindernoren/Keras-GAN
+amir-abdi/keras_to_tensorflow
+RubensZimbres/Repo-2017
+willard-yuan/flask-keras-cnn-image-retrieval
+broadinstitute/keras-rcnn
+qqwweee/keras-yolo3
+fizyr/keras-retinanet
+farizrahman4u/seq2seq
+fchollet/deep-learning-models
+keras-team/keras-contrib
+matterport/Mask_RCNN
+jaungiers/LSTM-Neural-Network-for-Time-Series-Prediction
+Separius/BERT-keras
+axon-research/c3d-keras
+keras-team/keras
+keras-rl/keras-rl
+eriklindernoren/Keras-GAN
+qqwweee/keras-yolo3
+fizyr/keras-retinanet
+allanzelener/YAD2K
+joeddav/devol
+keras-team/keras-applications
+tkipf/keras-gcn
+farizrahman4u/seq2seq
+fchollet/deep-learning-models
+keras-team/keras-contrib
+matterport/Mask_RCNN
+allanzelener/YAD2K
+kuza55/keras-extras
+farizrahman4u/recurrentshop
+yanpanlau/DDPG-Keras-Torcs
+chen0040/keras-anomaly-detection
+asingh33/CNNGestureRecognizer
+oarriaga/face_classification
+jacobgil/keras-grad-cam
+philipperemy/keras-attention-mechanism
+flyyufelix/cnn_finetune
+raghakot/keras-vis
+bstriner/keras-adversarial
+basveeling/wavenet
+titu1994/DenseNet
+maxpumperla/elephas
+jisungk/deepjazz
+pierluigiferrari/ssd_keras
+autonomio/talos
+rcmalli/keras-mobilenet
+niitsuma/word2vec-keras-in-gensim
+yanpanlau/Keras-FlappyBird
+vict0rsch/deep_learning
+osh/kerlym
+GantMan/nsfw_model
+datalogue/keras-attention
+usernaamee/keras-wavenet
+keras-team/keras-preprocessing
+sonyisme/keras-recommendation
+repo_name
+philipperemy/keras-attention-mechanism
+flyyufelix/cnn_finetune
+raghakot/keras-vis
+bstriner/keras-adversarial
+basveeling/wavenet
+titu1994/DenseNet
+rcmalli/keras-mobilenet
+niitsuma/word2vec-keras-in-gensim
+yanpanlau/Keras-FlappyBird
+aurora95/Keras-FCN
+YCG09/chinese_ocr
+maxpumperla/elephas
+jisungk/deepjazz
+pierluigiferrari/ssd_keras
+autonomio/talos
+vict0rsch/deep_learning
+osh/kerlym
+GantMan/nsfw_model
+datalogue/keras-attention
+usernaamee/keras-wavenet
+keras-team/keras-preprocessing
+lvapeab/nmt-keras
+amir-abdi/keras_to_tensorflow
+RubensZimbres/Repo-2017
+willard-yuan/flask-keras-cnn-image-retrieval
+broadinstitute/keras-rcnn
+Separius/BERT-keras
+jaungiers/LSTM-Neural-Network-for-Time-Series-Prediction
+jinfagang/keras_frcnn
+raghakot/keras-resnet
+philipperemy/keras-tcn
+qubvel/segmentation_models
+sonyisme/keras-recommendation
+axon-research/c3d-keras
+rcmalli/keras-vggface
+sadeepj/crfasrnn_keras
+codekansas/keras-language-modeling
+titu1994/Image-Super-Resolution
+jacobgil/keras-dcgan
+maxpumperla/hyperas
+joeddav/devol
+keras-team/keras-applications
+tkipf/keras-gcn
+kuza55/keras-extras
+keras-team/keras
+keras-rl/keras-rl
+eriklindernoren/Keras-GAN
+qqwweee/keras-yolo3
+fizyr/keras-retinanet
+farizrahman4u/recurrentshop
+asingh33/CNNGestureRecognizer
+yanpanlau/DDPG-Keras-Torcs
+chen0040/keras-anomaly-detection
+oarriaga/face_classification
+jacobgil/keras-grad-cam
+farizrahman4u/seq2seq
+fchollet/deep-learning-models
+keras-team/keras-contrib
+matterport/Mask_RCNN
+allanzelener/YAD2K
+kastnerkyle/deform-conv
+flyyufelix/DenseNet-Keras
+sksq96/pytorch-summary
+EderSantana/seya
+alexander-rakhlin/CNN-for-Sentence-Classification-in-Keras
+jrosebr1/simple-keras-rest-api
+YerevaNN/R-NET-in-Keras
+bojone/vae
+yhenon/keras-spp
+titu1994/Snapshot-Ensembles
+XifengGuo/CapsNet-Keras
+xiaochus/YOLOv3
+rcmalli/keras-squeezenet
+fchollet/hualos
+kentsommer/keras-inceptionV4
+farizrahman4u/qlearning4k
+keon/deep-q-learning
+keunwoochoi/kapre
+divamgupta/image-segmentation-keras
+raghakot/keras-text
+nicolov/segmentation_keras
+heuritech/convnets-keras
+xiaochus/MobileNetV2
+nerox8664/pytorch2keras
+nicolas-ivanov/debug_seq2seq
+experiencor/keras-yolo3
+jacobgil/keras-cam
+qubvel/classification_models
+cerndb/dist-keras
+titu1994/Keras-Classification-Models
+repo_name
+kastnerkyle/deform-conv
+flyyufelix/DenseNet-Keras
+sksq96/pytorch-summary
+EderSantana/seya
+alexander-rakhlin/CNN-for-Sentence-Classification-in-Keras
+jrosebr1/simple-keras-rest-api
+YerevaNN/R-NET-in-Keras
+bojone/vae
+yhenon/keras-spp
+titu1994/Snapshot-Ensembles
+jinfagang/keras_frcnn
+raghakot/keras-resnet
+philipperemy/keras-tcn
+qubvel/segmentation_models
+rcmalli/keras-vggface
+sadeepj/crfasrnn_keras
+codekansas/keras-language-modeling
+titu1994/Image-Super-Resolution
+jacobgil/keras-dcgan
+maxpumperla/hyperas
+aurora95/Keras-FCN
+YCG09/chinese_ocr
+lvapeab/nmt-keras
+amir-abdi/keras_to_tensorflow
+RubensZimbres/Repo-2017
+willard-yuan/flask-keras-cnn-image-retrieval
+broadinstitute/keras-rcnn
+jaungiers/LSTM-Neural-Network-for-Time-Series-Prediction
+Separius/BERT-keras
+axon-research/c3d-keras
+rcmalli/keras-mobilenet
+niitsuma/word2vec-keras-in-gensim
+yanpanlau/Keras-FlappyBird
+vict0rsch/deep_learning
+osh/kerlym
+XifengGuo/CapsNet-Keras
+xiaochus/YOLOv3
+rcmalli/keras-squeezenet
+GantMan/nsfw_model
+datalogue/keras-attention
+usernaamee/keras-wavenet
+keras-team/keras-preprocessing
+sonyisme/keras-recommendation
+fchollet/hualos
+kentsommer/keras-inceptionV4
+farizrahman4u/qlearning4k
+keon/deep-q-learning
+keunwoochoi/kapre
+divamgupta/image-segmentation-keras
+raghakot/keras-text
+philipperemy/keras-attention-mechanism
+flyyufelix/cnn_finetune
+raghakot/keras-vis
+bstriner/keras-adversarial
+joeddav/devol
+keras-team/keras-applications
+tkipf/keras-gcn
+keras-team/keras
+keras-rl/keras-rl
+eriklindernoren/Keras-GAN
+basveeling/wavenet
+titu1994/DenseNet
+maxpumperla/elephas
+jisungk/deepjazz
+pierluigiferrari/ssd_keras
+kuza55/keras-extras
+farizrahman4u/recurrentshop
+asingh33/CNNGestureRecognizer
+yanpanlau/DDPG-Keras-Torcs
+chen0040/keras-anomaly-detection
+oarriaga/face_classification
+jacobgil/keras-grad-cam
+qqwweee/keras-yolo3
+fizyr/keras-retinanet
+farizrahman4u/seq2seq
+fchollet/deep-learning-models
+keras-team/keras-contrib
+matterport/Mask_RCNN
+autonomio/talos
+allanzelener/YAD2K
+keunwoochoi/music-auto_tagging-keras
+harvitronix/five-video-classification-methods
+chen0040/keras-text-summarization
+titu1994/Super-Resolution-using-Generative-Adversarial-Networks
+titu1994/neural-image-assessment
+jocicmarko/ultrasound-nerve-segmentation
+rizkiarm/LipNet
+ellisdg/3DUnetCNN
+DingKe/nn_playground
+phreeza/keras-GAN
+repo_forks,repo_desc,repo_watch,repo_dcount,repo_link,page,repo_stars,repo_owner,repo_last_mod,repo_name,repo_ref
+219,,62,,https://github.com/yoonkim/lstm-char-cnn,https://github.com/yoonkim/lstm-char-cnn,776,https://github.com/yoonkim,2016-03-15T17:40:30Z,LSTM language model with CNN over characters,
+199,,53,,https://github.com/jzbontar/mc-cnn,https://github.com/jzbontar/mc-cnn,528,https://github.com/jzbontar,2017-08-18T21:25:14Z,Stereo Matching by Training a Convolutional Neural Network to Compare Image Patches,
+249,,62,,https://github.com/carpedm20/lstm-char-cnn-tensorflow,https://github.com/carpedm20/lstm-char-cnn-tensorflow,717,https://github.com/carpedm20,2017-04-02T18:16:47Z,in progress,
+115,,39,,https://github.com/jcjohnson/cnn-vis,https://github.com/jcjohnson/cnn-vis,490,https://github.com/jcjohnson,2015-07-01T22:51:42Z,Use CNNs to generate images,
+379,,27,,https://github.com/rbgirshick/caffe-fast-rcnn,https://github.com/rbgirshick/caffe-fast-rcnn,312,https://github.com/rbgirshick,2015-08-09T08:45:09Z,Caffe fork that supports Fast R-CNN,
+77,,13,,https://github.com/vedaldi/practical-cnn,https://github.com/vedaldi/practical-cnn,145,https://github.com/vedaldi,2017-11-27T16:26:30Z,A VGG practical on convolutional neural networks,
+137,,27,,https://github.com/s-gupta/rcnn-depth,https://github.com/s-gupta/rcnn-depth,273,https://github.com/s-gupta,2016-10-07T05:34:04Z,Learning Rich Features from RGB-D Images for Object Detection and Segmentation,
+47,,12,,https://github.com/gnawice/mojo-cnn,https://github.com/gnawice/mojo-cnn,135,https://github.com/gnawice,2018-07-11T16:51:51Z,mojo cnn: c++ convolutional neural network,
+74,,13,,https://github.com/gidariss/mrcnn-object-detection,https://github.com/gidariss/mrcnn-object-detection,100,https://github.com/gidariss,2016-04-06T17:40:31Z,Object detection via a multi-region & semantic segmentation-aware CNN model,
+74,,15,,https://github.com/mitmul/ssai-cnn,https://github.com/mitmul/ssai-cnn,223,https://github.com/mitmul,2017-12-27T04:01:47Z,Semantic Segmentation for Aerial / Satellite Images with Convolutional Neural Networks including an unofficial implementation of Volodymyr Mnih's methods,
+120,,23,,https://github.com/taolei87/rcnn,https://github.com/taolei87/rcnn,302,https://github.com/taolei87,2018-01-13T00:30:48Z,Recurrent & convolutional neural network modules,
+107,,17,,https://github.com/jimmy-ren/vcnn_double-bladed,https://github.com/jimmy-ren/vcnn_double-bladed,106,https://github.com/jimmy-ren,2016-04-02T09:32:44Z,Vectorized implementation of convolutional neural networks (CNN) in Matlab for both visual recognition and image processing.,
+268,,43,,https://github.com/ijkguo/mx-rcnn,https://github.com/ijkguo/mx-rcnn,607,https://github.com/ijkguo,2018-08-25T17:46:45Z,Parallel Faster R-CNN implementation with MXNet.,
+66,,16,,https://github.com/charlesq34/3dcnn.torch,https://github.com/charlesq34/3dcnn.torch,166,https://github.com/charlesq34,2017-04-19T18:55:33Z,Volumetric CNN for feature extraction and object classification on 3D data.,
+65,,16,,https://github.com/aosokin/cnn_head_detection,https://github.com/aosokin/cnn_head_detection,162,https://github.com/aosokin,2016-09-21T18:09:33Z,"Code for ICCV 2015 paper ""Context-aware CNNs for person head detection""",
+42,,11,,https://github.com/chengtaipu/lowrankcnn,https://github.com/chengtaipu/lowrankcnn,78,https://github.com/chengtaipu,2016-03-24T02:37:11Z,Low-rank convolutional neural networks,
+99,,14,,https://github.com/suhangpro/mvcnn,https://github.com/suhangpro/mvcnn,209,https://github.com/suhangpro,2019-01-03T20:27:20Z,Multi-view CNN (MVCNN) for shape recognition,
+46,,8,,https://github.com/ecobost/cnn4brca,https://github.com/ecobost/cnn4brca,60,https://github.com/ecobost,2017-04-22T05:25:28Z,Using Convolutional Neural Networks (CNN) for Semantic Segmentation of Breast Cancer Lesions (BRCA). Master's thesis,
+20,,6,,https://github.com/jhjin/flattened-cnn,https://github.com/jhjin/flattened-cnn,58,https://github.com/jhjin,2015-09-17T17:08:00Z,Flattened convolutional neural networks (1D convolution modules for Torch nn),
+13,,5,,https://github.com/vedaldi/practical-cnn-reg,https://github.com/vedaldi/practical-cnn-reg,21,https://github.com/vedaldi,2016-03-22T13:47:49Z,A CNN practical focusing on image to image regression,
+25,,5,,https://github.com/pathak22/ccnn,https://github.com/pathak22/ccnn,53,https://github.com/pathak22,2016-05-03T15:59:17Z,[ICCV 2015] Framework for optimizing CNNs with linear constraints for Semantic Segmentation,
+51,,8,,https://github.com/xuzhenqi/cnn,https://github.com/xuzhenqi/cnn,56,https://github.com/xuzhenqi,2016-11-22T10:03:26Z,This is a matlab-code implementation of convolutional neural network,
+90,,10,,https://github.com/zhengshou/scnn,https://github.com/zhengshou/scnn,172,https://github.com/zhengshou,2019-03-02T20:25:16Z,Segment-CNN: A Framework for Temporal Action Localization in Untrimmed Videos via Multi-stage CNNs,
+11,,4,,https://github.com/kjchavez/cnn-project,https://github.com/kjchavez/cnn-project,29,https://github.com/kjchavez,2017-09-23T15:42:40Z,Project for CS 231N,
+4,,4,,https://github.com/vitruvianscience/faster_r_cnn,https://github.com/vitruvianscience/faster_r_cnn,9,https://github.com/vitruvianscience,2015-11-07T21:50:41Z,"Implementation of ""Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks""",
+17,,6,,https://github.com/libcnn/libcnn,https://github.com/libcnn/libcnn,22,https://github.com/libcnn,2015-11-16T08:04:24Z,libcnn++,
+106,,26,,https://github.com/willard-yuan/flask-keras-cnn-image-retrieval,https://github.com/willard-yuan/flask-keras-cnn-image-retrieval,256,https://github.com/willard-yuan,2018-12-26T15:13:12Z,,
+81,,14,,https://github.com/DeepCompute/cnn,https://github.com/DeepCompute/cnn,91,https://github.com/DeepCompute,2016-08-21T08:14:21Z,基于Java实现CNN，并附MNIST和语音（MFCC特征）性别识别示例。,
+6,,3,,https://github.com/johannesu/cnn-cells,https://github.com/johannesu/cnn-cells,16,https://github.com/johannesu,2019-04-17T19:33:55Z,Cell detection using a convolutional neueral network,
+10,,3,,https://github.com/sibosutd/cnn-timeseries,https://github.com/sibosutd/cnn-timeseries,21,https://github.com/sibosutd,2016-01-14T06:55:52Z,Use CNN to classify time series data for activity recognition,
+21,,2,,https://github.com/sandeepraju/ihradis-cnn-deblur,https://github.com/sandeepraju/ihradis-cnn-deblur,55,https://github.com/sandeepraju,2016-02-27T07:58:55Z,Image deblurring with Convolutional Neural Networks. Scripts & Neural network models available here,
+106,,26,,https://github.com/indiejoseph/cnn-text-classification-tf-chinese,https://github.com/indiejoseph/cnn-text-classification-tf-chinese,226,https://github.com/indiejoseph,2016-07-25T06:45:41Z,CNN for Chinese Text Classification in Tensorflow,
+18,,1,,https://github.com/intact-project/ild-cnn,https://github.com/intact-project/ild-cnn,15,https://github.com/intact-project,2016-04-13T08:16:40Z,"This is supplementary material for the manuscript: ""Lung Pattern Classification for Interstitial Lung Diseases Using a Deep Convolutional Neural Network"" M. Anthimopoulos, S. Christodoulidis, L. Ebner, A. Christe and S. Mougiakakou, IEEE Transactions on Medical Imaging (2016)",
+2,,1,,https://github.com/pathak22/caffe-ccnn,https://github.com/pathak22/caffe-ccnn,6,https://github.com/pathak22,2015-12-09T13:26:51Z,Branch of caffe for weakly supervised learning.,
