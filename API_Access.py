@@ -3,18 +3,25 @@
 import requests
 import json
 import pandas as pd
+import pymongo
 
 if __name__ == "__main__":
 
     # Configure number and size of requests
     n_search_requests = 10
-    n_results_per_page = 100
+    n_results_per_page = 10
 
     # Initialize repository list
     repo_list = []
 
     # Search query string, see https://developer.github.com/v3/search/#search-repositories for documentation
-    query = 'CNN+keras+in:readme&sort=stars&order=desc'
+    # Example search: https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:GilbertoEspinoza/emojify
+    search_terms = ['CNN', 'cnn', 'keras', 'Keras']
+    query_search_terms = '+'.join(search_terms)
+
+    search_locations = ['description', 'readme']
+    query_search_locations = '+'.join(['in:' + location for location in search_locations])
+    query = query_search_terms + '+' + query_search_locations  # + '&sort=stars&order=desc'
 
     # Retrieve local access token for GitHub API access
     with open('GitHub_Access_Token.txt', 'r') as f:
@@ -36,7 +43,7 @@ if __name__ == "__main__":
 
         # Print status code and encoding
         if response.status_code == 200:
-            print('Request %d/%d succesful' % (page + 1, n_search_requests))
+            print('Request %d/%d successful' % (page + 1, n_search_requests))
 
             # Create json file from response
             json_data = json.loads(response.text)
@@ -48,12 +55,56 @@ if __name__ == "__main__":
             print('Request %d/%d failed. Error code: %d' % (page + 1, n_search_requests, response.status_code))
 
     # Save json file locally
-    with open('Repo_Search_Results.json', 'w', encoding='utf8') as jason_file:
-        json.dump(repo_list, jason_file)
+    with open('Repo_Search_Results.json', 'w', encoding='utf8') as json_file:
+        json.dump(repo_list, json_file)
 
-    with open('Repo_Search_Results.json', 'r', encoding='utf8') as jason_file:
-        data = json.load(jason_file)
+    # Open file and display data
+    # with open('Repo_Search_Results.json', 'r', encoding='utf8') as json_file:
+    #     data = json.load(json_file)
+    #
+    # data_frame = pd.DataFrame(data)
+    # print(data_frame.get('html_url', {}))
 
-    data_frame = pd.DataFrame(data)
+    # Initialize data dict for json export
+    data = []
 
-    print(data_frame.get('html_url', {}))
+    # Create repository items and add to data list
+    for repo in repo_list:
+        query_url = 'https://api.github.com/search/code?q=extension:h5+repo:' + repo['full_name']
+        print(repo['full_name'])
+        response = requests.get(query_url, headers)
+        has_architecture = False
+        if response.status_code == 200:
+            has_architecture = json.loads(response.text).get('total_count') > 0
+            print('Checked for architecture. Result: %s' % str(has_architecture))
+        else:
+            print('Request for architecture failed. Error code: %d' % (response.status_code))
+
+        if has_architecture:
+            item = {'repo_url': repo['html_url'],
+                    'repo_name': repo['name'],
+                    'repo_owner': repo['owner']['login'],
+                    'repo_desc': repo['description'],
+                    'repo_ext_links': None,
+                    'repo_last_mod': repo['updated_at'],
+                    'repo_watch': repo['watchers_count'],
+                    'repo_forks': repo['forks_count']}
+
+            data.append(item)
+
+    # Retrieve database credentials
+    cred_path = 'C:/Users/svenk/PycharmProjects/GitHub_Scraping/connection_creds.txt'
+    with open(cred_path, 'r') as f:
+        connection_string = f.read()
+
+    # Establish database connection
+    client = pymongo.MongoClient(connection_string)
+    collection = client.GitHub.repos
+    print(client.server_info())
+
+    # Insert data into database if list is not empty
+    if data:
+        collection.insert_many(data)
+
+    # Check database size and print to console
+    print('Number of Repositories in Database: %d' % collection.count_documents({}))

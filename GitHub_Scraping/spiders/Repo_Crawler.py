@@ -26,8 +26,8 @@ class RepoCrawlerSpider(scrapy.Spider):
 
     # Initialize and populate list from Pandas DataFrame
     repo_list = []
-    for item in data['full_name']:
-        repo_list.append('https://github.com/' + item)
+    for item in data['html_url']:
+        repo_list.append(item)
 
     # Set start urls
     start_urls = repo_list
@@ -58,15 +58,19 @@ class RepoCrawlerSpider(scrapy.Spider):
         for repo in row_data:
             item = GithubScrapingItem()
             item['page'] = response.url
-            item['repo_name'] = repo[1].strip()
+            item['repo_name'] = repo[0].strip()
+            item['repo_desc'] = repo[1].strip()
             item['repo_link'] = 'https://github.com/' + repo[2].strip() + '/' + repo[0]
             item['repo_owner'] = 'https://github.com/' + repo[2]
             item['repo_ref'] = repo[3]
             item['repo_dcount'] = repo[4]
             item['repo_last_mod'] = repo[5]
-            item['repo_watch'] = int(repo[6].strip())
-            item['repo_stars'] = int(repo[7].strip())
-            item['repo_forks'] = int(repo[8].strip())
+            try:
+                item['repo_watch'] = int(repo[6].strip())
+                item['repo_stars'] = int(repo[7].strip())
+                item['repo_forks'] = int(repo[8].strip())
+            except ValueError as ve:
+                print('Could not be converted to integer value: %s' % ve.args)
 
             yield item
 
