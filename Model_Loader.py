@@ -4,12 +4,18 @@ This class extracts the model architecture information from a h5 file
 
 import h5py
 import json
+import urllib.request
 
 if __name__ == '__main__':
     output_filepath = 'Layers.json'
     # Specify h5 file location and load file
-    filename = 'data/modelforsongsclassificationwithoutstem.h5'
-    f = h5py.File(filename, 'r')
+    # filename = 'data/modelforsongsclassificationwithoutstem.h5'
+    # f = h5py.File(filename, 'r')
+    url = 'https://github.com/achyuta26/MusicalFace/raw/master/modelforsongsclassificationwithoutstem.h5'
+    file_name, headers = urllib.request.urlretrieve(url)
+    f = h5py.File(file_name, 'r')
+
+
 
     ## Traverse attributes
     # def print_attrs(name, obj):
@@ -27,11 +33,14 @@ if __name__ == '__main__':
     # Make dict from string
     d = json.loads(model_config)
 
+    print(d)
+
     # Initialize list of layer items
     layer_items_list = []
 
     # Traverse layers from configuration dict
     for element in list(d.get('config', {}).get('layers')):
+    # for element in list(d.get('config', {})):
         # print(element)
         layer_type = element.get('class_name', {})
         print('Type: %s' % layer_type)  # Print class name (Type)
