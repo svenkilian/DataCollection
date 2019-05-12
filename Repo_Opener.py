@@ -20,5 +20,5 @@ if __name__ == '__main__':
         # pprint.pprint(repo['page'])
         repo_links.append(repo['repo_url'])
 
-    for link in repo_links[:5]:
+    for link in repo_links[:10]:
         webbrowser.open_new_tab(link)

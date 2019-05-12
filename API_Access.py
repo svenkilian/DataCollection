@@ -8,8 +8,8 @@ import pymongo
 if __name__ == "__main__":
 
     # Configure number and size of requests
-    n_search_requests = 3
-    n_results_per_page = 9
+    n_search_requests = 1
+    n_results_per_page = 29
 
     # Initialize repository list
     repo_list = []
@@ -17,13 +17,13 @@ if __name__ == "__main__":
     # Search query string, see https://developer.github.com/v3/search/#search-repositories for documentation
     # Example search: https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:GilbertoEspinoza/emojify
     # search_terms = ['CNN', 'cnn', 'keras', 'Keras']
-    search_terms = ['emojify']
+    search_terms = ['keras', 'deep neural network', 'cnn']
     query_search_terms = '+'.join(search_terms)
 
     # search_locations = ['description', 'readme']
-    search_locations = ['readme']
+    search_locations = ['readme', 'description']
     query_search_locations = '+'.join(['in:' + location for location in search_locations])
-    query = query_search_terms + '+' + query_search_locations  # + '&sort=stars&order=desc'
+    query = query_search_terms + '+' + query_search_locations + '+language:python&sort=updated&order=desc'
 
     # Retrieve local access token for GitHub API access
     with open('GitHub_Access_Token.txt', 'r') as f:
@@ -78,18 +78,24 @@ if __name__ == "__main__":
     data = []
 
     # Create repository items and add to data list
+    true_count = 0
+    false_count = 0
+
     for repo in repo_list:
-        query_url = 'https://api.github.com/search/code?q=extension:h5+repo:' + repo['full_name']
+        # query_url = 'https://api.github.com/search/code?q=save+extension:py+repo:' + repo['full_name']  # Seach for 'save' in .py file
+        query_url = 'https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:' + repo['full_name']  # Search for h5 extension
         print(repo['full_name'])
         response = requests.get(query_url, headers=headers)
         print('Limit: %d' % int(response.headers['X-RateLimit-Limit']))
         print('Remaining: %d' % int(response.headers['X-RateLimit-Remaining']))
-        print()
+
         has_architecture = False
         if response.status_code == 200:
             has_architecture = json.loads(response.text).get('total_count') > 0
             print('Checked for architecture. Result: %s \n' % str(has_architecture))
-            print(response.text)
+            true_count = true_count + 1 if has_architecture else true_count
+            false_count = false_count + 1 if not has_architecture else false_count
+            # print(response.text)
         else:
             print('Request for architecture failed. Error code: %d - %s' % (response.status_code, response.reason))
             print()
@@ -105,6 +111,10 @@ if __name__ == "__main__":
                     'repo_forks': repo['forks_count']}
 
             data.append(item)
+
+    print('Search for architecture completed. \n'
+          'True: %d \n' % true_count +
+          'False: %d \n' % false_count)
 
     # Retrieve database credentials
     cred_path = 'C:/Users/svenk/PycharmProjects/GitHub_Scraping/connection_creds.txt'
