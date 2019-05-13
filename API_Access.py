@@ -3,14 +3,14 @@ import time
 
 import requests
 import json
-import pandas as pd
+# import pandas as pd
 import pymongo
 
 if __name__ == "__main__":
 
     # Configure number and size of requests (responses are paginated)
     n_search_requests = 10
-    n_results_per_page = 100
+    n_results_per_page = 10
 
     # Initialize repository list
     repo_list = []
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     # Search query string, see https://developer.github.com/v3/search/#search-repositories for documentation
     # Example search: https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:GilbertoEspinoza/emojify
     # search_terms = ['CNN', 'cnn', 'keras', 'Keras', 'image processing', 'character recognition', 'forecasting']
-    search_terms = ['keras', 'forecasting', 'time series']
+    search_terms = ['keras', 'ann']
     query_search_terms = '+'.join(search_terms)
 
     search_locations = ['readme', 'description']
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                 page + 1, n_search_requests, response.status_code, response.reason))
 
     # Save json file locally in specified location
-    with open('Repo_Search_Results.json', 'w', encoding='utf8') as json_file:
+    with open('Repo_Search_Results.json', 'w') as json_file:
         json.dump(repo_list, json_file)
 
     # Open file and display data
@@ -166,7 +166,7 @@ if __name__ == "__main__":
           'False: %d \n' % false_count)
 
     # Retrieve database credentials
-    cred_path = 'C:/Users/svenk/PycharmProjects/GitHub_Scraping/connection_creds.txt'
+    cred_path = 'connection_creds.txt'
     with open(cred_path, 'r') as f:
         connection_string = f.read()
 
