@@ -2,7 +2,7 @@
 
 from bson import json_util
 import json
-import pandas as pd
+# import pandas as pd
 import pymongo
 
 
@@ -63,7 +63,7 @@ def clear_all_entries(coll):
 
 if __name__ == "__main__":
     # Establish database connection
-    cred_path = 'C:/Users/svenk/PycharmProjects/GitHub_Scraping/connection_creds.txt'
+    cred_path = 'connection_creds.txt'
     with open(cred_path, 'r') as f:
         connection_string = f.read()
 

@@ -1,3 +1,6 @@
 h5py
 scrapy
 pymongo
+requests
+numpy
+pandas
