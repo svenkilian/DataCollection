@@ -1,4 +1,5 @@
 # This class implements database access to GitHub's REST-API for search queries
+import time
 
 import requests
 import json
@@ -8,50 +9,65 @@ import pymongo
 if __name__ == "__main__":
 
     # Configure number and size of requests (responses are paginated)
-    n_search_requests = 1
-    n_results_per_page = 29
+    n_search_requests = 10
+    n_results_per_page = 100
 
     # Initialize repository list
     repo_list = []
 
     # Search query string, see https://developer.github.com/v3/search/#search-repositories for documentation
     # Example search: https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:GilbertoEspinoza/emojify
-    # search_terms = ['CNN', 'cnn', 'keras', 'Keras']
-    search_terms = ['keras', 'neural network', 'ann', 'artificial neural network']
+    # search_terms = ['CNN', 'cnn', 'keras', 'Keras', 'image processing', 'character recognition', 'forecasting']
+    search_terms = ['keras', 'forecasting', 'time series']
     query_search_terms = '+'.join(search_terms)
 
     search_locations = ['readme', 'description']
     query_search_locations = '+'.join(['in:' + location for location in search_locations])
-    query = query_search_terms + '+' + query_search_locations + '+language:python&sort=updated&order=desc'
+
+    query_sort_by = 'updated'  # updated, stars, forks, default: score
+    query = query_search_terms + '+' + query_search_locations + '+language:python&sort=' + query_sort_by + '&order=desc'
 
     # Retrieve local access token for GitHub API access
     with open('GitHub_Access_Token.txt', 'r') as f:
-        access_token = f.read()
+        access_tokens = f.readlines()
 
-    print(access_token)
+    access_tokens = [token.rstrip('\n') for token in access_tokens]
+
 
     # Specify request header for authentication
-    headers = {'Authorization': 'token ' + access_token}
+    # headers = {'Authorization': 'token ' + access_tokens[0]}
+
+    token_counter = 0
+    rotation_cycle = len(access_tokens)
 
     print('Total number of requests: %d' % n_search_requests)
     print('Number of items per page: %d \n\n' % n_results_per_page)
 
     # Make URL request to GitHub API by page (due to pagination of responses)
-    for page in range(1, n_search_requests + 1):
+    for page in range(0, n_search_requests):
         # Create url from query
+
         url = 'https://api.github.com/search/repositories?page=' + str(
             page) + '&per_page=' + str(n_results_per_page) + '&q=' + query
 
+        # Determine current token index and increment counter
+        token_index = token_counter % rotation_cycle
+        token_counter += 1
+
+        headers = {'Authorization': 'token ' + access_tokens[token_index]}
         # Submit request and save response
+        start_time = time.time()
         response = requests.get(url, headers=headers)
+        end_time = time.time()
+        print('Time for initial request: %g' % (end_time - start_time))
         print('Limit: %d' % int(response.headers['X-RateLimit-Limit']))
         print('Remaining: %d' % int(response.headers['X-RateLimit-Remaining']))
-        print()
+        print('Token: %d,\n%s' % (token_index, access_tokens[token_index]))
 
         # Print status code and encoding
         if response.status_code == 200:
             # If request successful
-            print('Request %d/%d successful' % (page + 1, n_search_requests))
+            print('Request %d/%d successful\n' % (page + 1, n_search_requests))
 
             # Create json file from response
             json_data = json.loads(response.text)
@@ -82,17 +98,26 @@ if __name__ == "__main__":
     true_count = 0
     false_count = 0
 
+    repo_count = len(repo_list)
+
     # Iterate through repositories in list
-    for repo in repo_list:
+    for repo_index, repo in enumerate(repo_list):
         # Seach for 'save' in .py file
         # query_url = 'https://api.github.com/search/code?q=save+extension:py+repo:' + repo['full_name']
+
+        token_index = token_counter % rotation_cycle
+        token_counter += 1
+        headers = {'Authorization': 'token ' + access_tokens[token_index]}
 
         # Specify search for file extensions '.h5' and 'hdf5'
         query_url = 'https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:' + repo['full_name']
         print(repo['full_name'])
+        print('Repo %d/%d' % (repo_index + 1, repo_count))
+        start_time = time.time()
         response = requests.get(query_url, headers=headers)
-        print('Limit: %d' % int(response.headers['X-RateLimit-Limit']))
-        print('Remaining: %d' % int(response.headers['X-RateLimit-Remaining']))
+        end_time = time.time()
+        print('Time for request: %g' % (end_time - start_time))
+
 
         has_architecture = False
 
@@ -101,6 +126,10 @@ if __name__ == "__main__":
             # If request to API successful
             has_architecture = json.loads(response.text).get('total_count') > 0  # '.h5' or '.hdf5' file found in repo
             print('Checked for architecture. Result: %s \n' % str(has_architecture))
+
+            # Print out remaining capacity
+            print('Limit: %d' % int(response.headers['X-RateLimit-Limit']))
+            print('Remaining: %d' % int(response.headers['X-RateLimit-Remaining']))
 
             # Update success counters
             true_count = true_count + 1 if has_architecture else true_count

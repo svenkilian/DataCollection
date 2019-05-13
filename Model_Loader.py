@@ -11,8 +11,9 @@ if __name__ == '__main__':
     # Specify h5 file location and load file
     # filename = 'data/modelforsongsclassificationwithoutstem.h5'
     # f = h5py.File(filename, 'r')
-    url = 'https://github.com//anarchos78/iot-blockchain-ml-botnet-experiment/raw/master/project-files/create_prediction_model/models/botnet_classifier.h5'
-    file_name, headers = urllib.request.urlretrieve(url)
+    # url = 'https://github.com//anarchos78/iot-blockchain-ml-botnet-experiment/raw/master/project-files/create_prediction_model/models/botnet_classifier.h5'
+    # file_name, headers = urllib.request.urlretrieve(url)
+    file_name = 'data/regression_model.h5'
     f = h5py.File(file_name, 'r')
 
 
