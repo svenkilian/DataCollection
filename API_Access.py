@@ -166,7 +166,7 @@ if __name__ == "__main__":
           'False: %d \n' % false_count)
 
     # Retrieve database credentials
-    cred_path = 'C:/Users/svenk/PycharmProjects/GitHub_Scraping/connection_creds.txt'
+    cred_path = 'connection_creds.txt'
     with open(cred_path, 'r') as f:
         connection_string = f.read()
 
