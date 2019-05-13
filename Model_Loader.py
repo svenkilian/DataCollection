@@ -13,7 +13,7 @@ if __name__ == '__main__':
     # f = h5py.File(filename, 'r')
     # url = 'https://github.com//anarchos78/iot-blockchain-ml-botnet-experiment/raw/master/project-files/create_prediction_model/models/botnet_classifier.h5'
     # file_name, headers = urllib.request.urlretrieve(url)
-    file_name = 'data/regression_model.h5'
+    file_name = 'data/cnn_model_keras2.h5'
     f = h5py.File(file_name, 'r')
 
 
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     layer_items_list = []
 
     # Traverse layers from configuration dict
-    for element in list(d.get('config', {}).get('layers')):
+    for element in list(d.get('config', {})): # .get('layers')):
     # for element in list(d.get('config', {})):
         # print(element)
         layer_type = element.get('class_name', {})
