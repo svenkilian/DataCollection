@@ -1,10 +1,12 @@
 # This class implements database access to GitHub's REST-API for search queries
+import sys
 import time
 
 import requests
 import json
 import pandas as pd
 import pymongo
+from Helper_Functions import print_progress
 
 if __name__ == "__main__":
 
@@ -20,9 +22,9 @@ if __name__ == "__main__":
     # search_terms = ['CNN', 'cnn', 'keras', 'Keras', '"image+processing"', '"character+recognition"', 'forecasting']
     search_terms = ['keras']
     query_search_terms = '+'.join(search_terms)
-    stop_words = ['']  # ['tutorial']
-    # query_stop_words = 'NOT+' + '+NOT+'.join(stop_words)
-    query_stop_words = ''
+    stop_words = ['tutorial']
+    query_stop_words = 'NOT+' + '+NOT+'.join(stop_words)
+    # query_stop_words = ''
 
     search_locations = ['readme', 'description']
     query_search_locations = '+'.join(['in:' + location for location in search_locations])
@@ -47,27 +49,36 @@ if __name__ == "__main__":
     # Create initial url from query
     url = 'https://api.github.com/search/repositories?page=1&per_page=' + str(n_results_per_page) + '&q=' + query
     n_results = 0
+    token_counter = 0
     headers = {'Authorization': 'token ' + access_tokens[0]}
+    begin_time = time.time()
+    start_time = time.time()
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         # If request successful
         n_results = json.loads(response.text).get('total_count')
         print('Total number of repositories found: %d\n' % n_results)
         print('Initial request successful')
-    token_counter = 1
+    end_time = time.time()
+    time_diff = end_time - start_time
+    print_progress(token_counter + 1, n_results/100, prog='Request avg: %g' % round(time_diff, 2),
+                   time_lapsed=end_time - start_time)
+    token_counter += 1
 
     # Make URL request to GitHub API by page (due to pagination of responses)
     while 'next' in response.links.keys():
 
         # Determine current token index and increment counter
         token_index = token_counter % rotation_cycle
-        token_counter += 1
 
         # Submit request and save response
         start_time = time.time()
         response = requests.get(response.links['next']['url'], headers=headers)
         end_time = time.time()
-        print('Time for initial request: %g' % (end_time - start_time))
+        print_progress(token_counter + 1, n_results/100, prog='Request avg: %g' % round(time_diff, 2),
+                       time_lapsed=end_time - start_time)
+        token_counter += 1
+        print('\n\nTime for initial request: %g' % (end_time - start_time))
         print('Limit: %d' % int(response.headers['X-RateLimit-Limit']))
         print('Remaining: %d' % int(response.headers['X-RateLimit-Remaining']))
         print('Token: %d,\n%s' % (token_index, access_tokens[token_index]))
@@ -86,7 +97,9 @@ if __name__ == "__main__":
         else:
             # If request unsuccessful, print error message
             print('Request %d/%d failed. Error code: %d - %s' % (
-                page + 1, n_search_requests, response.status_code, response.reason))
+                token_counter + 1, n_search_requests, response.status_code, response.reason))
+
+    print('Last page reached')
 
     # Save json file locally in specified location
     with open('Repo_Search_Results.json', 'w', encoding='utf8') as json_file:
@@ -107,6 +120,7 @@ if __name__ == "__main__":
     false_count = 0
 
     repo_count = len(repo_list)
+    sys.exit()
 
     # Iterate through repositories in list
     for repo_index, repo in enumerate(repo_list):
