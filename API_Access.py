@@ -18,10 +18,11 @@ if __name__ == "__main__":
     # Search query string, see https://developer.github.com/v3/search/#search-repositories for documentation
     # Example search: https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:GilbertoEspinoza/emojify
     # search_terms = ['CNN', 'cnn', 'keras', 'Keras', '"image+processing"', '"character+recognition"', 'forecasting']
-    search_terms = ['keras', 'ImageNet']
+    search_terms = ['keras']
     query_search_terms = '+'.join(search_terms)
-    stop_words = ['tutorial']
-    query_stop_words = 'NOT+' + '+NOT+'.join(stop_words)
+    stop_words = ['']  # ['tutorial']
+    # query_stop_words = 'NOT+' + '+NOT+'.join(stop_words)
+    query_stop_words = ''
 
     search_locations = ['readme', 'description']
     query_search_locations = '+'.join(['in:' + location for location in search_locations])
@@ -38,27 +39,33 @@ if __name__ == "__main__":
     # Specify request header for authentication
     # headers = {'Authorization': 'token ' + access_tokens[0]}
 
-    token_counter = 0
     rotation_cycle = len(access_tokens)
 
-    print('Total number of requests: %d' % n_search_requests)
-    print('Number of items per page: %d \n\n' % n_results_per_page)
+    # print('Total number of requests: %d' % n_search_requests)
+    # print('Number of items per page: %d \n\n' % n_results_per_page)
+
+    # Create initial url from query
+    url = 'https://api.github.com/search/repositories?page=1&per_page=' + str(n_results_per_page) + '&q=' + query
+    n_results = 0
+    headers = {'Authorization': 'token ' + access_tokens[0]}
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        # If request successful
+        n_results = json.loads(response.text).get('total_count')
+        print('Total number of repositories found: %d\n' % n_results)
+        print('Initial request successful')
+    token_counter = 1
 
     # Make URL request to GitHub API by page (due to pagination of responses)
-    for page in range(0, n_search_requests):
-        # Create url from query
-
-        url = 'https://api.github.com/search/repositories?page=' + str(
-            page) + '&per_page=' + str(n_results_per_page) + '&q=' + query
+    while 'next' in response.links.keys():
 
         # Determine current token index and increment counter
         token_index = token_counter % rotation_cycle
         token_counter += 1
 
-        headers = {'Authorization': 'token ' + access_tokens[token_index]}
         # Submit request and save response
         start_time = time.time()
-        response = requests.get(url, headers=headers)
+        response = requests.get(response.links['next']['url'], headers=headers)
         end_time = time.time()
         print('Time for initial request: %g' % (end_time - start_time))
         print('Limit: %d' % int(response.headers['X-RateLimit-Limit']))
@@ -68,7 +75,7 @@ if __name__ == "__main__":
         # Print status code and encoding
         if response.status_code == 200:
             # If request successful
-            print('Request %d/%d successful\n' % (page + 1, n_search_requests))
+            print('Request %d/%d successful\n' % (token_counter, n_results / 100))
 
             # Create json file from response
             json_data = json.loads(response.text)
