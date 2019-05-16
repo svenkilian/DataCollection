@@ -17,22 +17,23 @@ if __name__ == "__main__":
 
     # Search query string, see https://developer.github.com/v3/search/#search-repositories for documentation
     # Example search: https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:GilbertoEspinoza/emojify
-    # search_terms = ['CNN', 'cnn', 'keras', 'Keras', 'image processing', 'character recognition', 'forecasting']
-    search_terms = ['keras', 'time series']
+    # search_terms = ['CNN', 'cnn', 'keras', 'Keras', '"image+processing"', '"character+recognition"', 'forecasting']
+    search_terms = ['keras', 'ImageNet']
     query_search_terms = '+'.join(search_terms)
+    stop_words = ['tutorial']
+    query_stop_words = 'NOT+' + '+NOT+'.join(stop_words)
 
     search_locations = ['readme', 'description']
     query_search_locations = '+'.join(['in:' + location for location in search_locations])
 
-    query_sort_by = 'stars'  # updated, stars, forks, default: score
-    query = query_search_terms + '+' + query_search_locations + '+language:python&sort=' + query_sort_by + '&order=asc'
+    query_sort_by = 'score'  # updated, stars, forks, default: score
+    query = query_search_terms + '+' + query_stop_words + '+' + query_search_locations + '+language:python&sort=' + query_sort_by + '&order=desc'
 
     # Retrieve local access token for GitHub API access
     with open('GitHub_Access_Token.txt', 'r') as f:
         access_tokens = f.readlines()
 
     access_tokens = [token.rstrip('\n') for token in access_tokens]
-
 
     # Specify request header for authentication
     # headers = {'Authorization': 'token ' + access_tokens[0]}
@@ -117,7 +118,6 @@ if __name__ == "__main__":
         response = requests.get(query_url, headers=headers)
         end_time = time.time()
         print('Time for request: %g' % (end_time - start_time))
-
 
         has_architecture = False
 

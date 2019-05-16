@@ -13,7 +13,7 @@ if __name__ == '__main__':
     # f = h5py.File(filename, 'r')
     # url = 'https://github.com//anarchos78/iot-blockchain-ml-botnet-experiment/raw/master/project-files/create_prediction_model/models/botnet_classifier.h5'
     # file_name, headers = urllib.request.urlretrieve(url)
-    file_name = 'data/cnn_model_keras2.h5'
+    file_name = 'data/simple_CNN.985-0.66.hdf5'
     f = h5py.File(file_name, 'r')
 
 
