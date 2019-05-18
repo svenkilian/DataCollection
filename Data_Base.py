@@ -68,7 +68,7 @@ if __name__ == "__main__":
         connection_string = f.read()
 
     client = pymongo.MongoClient(connection_string)
-    collection = client.GitHub.repos
+    collection = client.GitHub.Repositories
 
     # Print database server info
     # print(json.dumps(client.server_info(), default=json_util.default, sort_keys=True, indent=3))
@@ -77,5 +77,5 @@ if __name__ == "__main__":
     # print('Number of entries with structure information: %d' % collection.count_documents({'has_structure': True}))
 
     delete_duplicates(collection)
-    # clear_all_entries(collection)
+    # clear_all_entries(collection)  # Use to clear all entries
     count_duplicates(collection)

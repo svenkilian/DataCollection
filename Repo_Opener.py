@@ -1,6 +1,7 @@
 import pymongo
 import pprint
 import webbrowser
+import pandas as pd
 
 from pymongo import MongoClient
 
@@ -14,11 +15,15 @@ if __name__ == '__main__':
 
     client = pymongo.MongoClient(connection_string)
 
-    collection = client.GitHub.repos
+    collection = client.GitHub.Repositories
 
-    for repo in collection.find():
-        # pprint.pprint(repo['page'])
-        repo_links.append(repo['repo_url'])
+    # for repo in collection.find():
+    #     # pprint.pprint(repo['page'])
+    #     repo_links.append(repo['repo_url'])
+    #
+    # for link in repo_links[:10]:
+    #     webbrowser.open_new_tab(link)
 
-    for link in repo_links[:10]:
-        webbrowser.open_new_tab(link)
+    data = pd.DataFrame(list(collection.find()))
+
+    print(data['repo_desc'].str.contains('keras', regex=False).sum())
