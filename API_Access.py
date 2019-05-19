@@ -11,6 +11,7 @@ import pymongo
 import requests
 
 from Helper_Functions import print_progress
+import DataCollection
 
 
 def iterate_pages(resp):
@@ -284,19 +285,12 @@ if __name__ == "__main__":
     #       'True: %d \n' % true_count +
     #       'False: %d \n' % false_count)
 
-    # Retrieve database credentials
-    cred_path = 'connection_creds.txt'
-    with open(cred_path, 'r') as f:
-        connection_string = f.read()
-
-    # Establish database connection
-    client = pymongo.MongoClient(connection_string)
-    collection = client.GitHub.Repositories
-    print(client.server_info())
+    collection = DataCollection.DataCollection('Repositories')
+    print(collection)
 
     # Insert data into database if list is not empty
     if data:
-        collection.insert_many(data)
+        collection.collection_object.insert_many(data)
 
     # Check database size and print to console
-    print('Number of Repositories in Database: %d' % collection.count_documents({}))
+    print('Number of Repositories in Database: %d' % collection.collection_object.count_documents({}))

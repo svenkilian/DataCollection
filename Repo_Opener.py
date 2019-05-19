@@ -27,3 +27,4 @@ if __name__ == '__main__':
     data = pd.DataFrame(list(collection.find()))
 
     print(data['repo_desc'].str.contains('keras', regex=False).sum())
+    print(data['readme_text'].str.contains('keras', regex=False).sum())
