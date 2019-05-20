@@ -2,18 +2,17 @@
 This class extracts the repository README.md and saves the plain text in the database
 """
 
-import json
 import time
 
-import requests
 import pymongo
+import requests
+from bs4 import BeautifulSoup
 from bson import ObjectId
 from bson.json_util import dumps
-from bs4 import BeautifulSoup
 from markdown import markdown
 from pandas import read_json
 
-from Helper_Functions import print_progress
+from DataCollection.Helper_Functions import print_progress
 
 if __name__ == '__main__':
     # Retrieve database credentials

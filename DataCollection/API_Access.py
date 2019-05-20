@@ -4,7 +4,7 @@ import json
 import time
 from math import ceil, floor
 import requests
-from Helper_Functions import print_progress
+from DataCollection.Helper_Functions import print_progress
 import DataCollection
 
 
