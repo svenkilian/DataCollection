@@ -9,6 +9,11 @@ import DataCollection
 
 
 def iterate_pages(resp):
+    """
+    Iterates over all pages following the 'next' links of ab API response
+    :param resp: response of previous request
+    :return:
+    """
     global token_counter, rotation_cycle, page_counter
     while 'next' in resp.links.keys():
         # Determine current token index and increment counter
@@ -42,7 +47,7 @@ def iterate_pages(resp):
             print('Request %d/%d failed. Error code: %d - %s' % (
                 token_counter + 1, n_search_requests, resp.status_code, resp.reason))
 
-    # print('\n\nLast page reached')
+
 
 
 if __name__ == "__main__":
