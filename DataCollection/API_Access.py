@@ -1,21 +1,15 @@
 # This class implements database access to GitHub's REST-API for search queries
 import datetime
 import json
-import sys
 import time
 from math import ceil, floor
-
-import dateutil.parser
-import pandas as pd
-import pymongo
 import requests
-
 from Helper_Functions import print_progress
 import DataCollection
 
 
 def iterate_pages(resp):
-    global token_counter, rotation_cycle, page_counter, slack
+    global token_counter, rotation_cycle, page_counter
     while 'next' in resp.links.keys():
         # Determine current token index and increment counter
         token_index = token_counter % rotation_cycle
@@ -24,12 +18,13 @@ def iterate_pages(resp):
         begin_query = time.time()
         # Submit request and save response
         resp = requests.get(resp.links['next']['url'], headers=headers)
+
         page_counter += 1
         end_time = time.time()
         time_diff = end_time - begin_query
 
         # Print search progress as progress bar
-        print_progress(page_counter, ceil(n_results / (100 * slack)), prog='Last request: %g' % round(time_diff, 2),
+        print_progress(page_counter, ceil(n_results / 100.0), prog='Last request: %g' % round(time_diff, 2),
                        time_lapsed=end_time - start_time)
 
         # Print status code and encoding
@@ -64,23 +59,26 @@ if __name__ == "__main__":
     # search_terms = ['CNN', 'cnn', 'keras', 'Keras', '"image+processing"', '"character+recognition"', 'forecasting']
     search_terms = ['keras']
     query_search_terms = '+'.join(search_terms)
+    # Specify words that are excluded from search
     stop_words = ['tutorial']
     query_stop_words = 'NOT+' + '+NOT+'.join(stop_words)
-    # query_stop_words = ''
 
-    search_locations = ['title', 'readme', 'description']
+    search_locations = ['title', 'readme', 'description']  # Specify locations to search
     query_search_locations = '+'.join(['in:' + location for location in search_locations])
-    search_from_date = datetime.date(2019, 4, 27)  # Keras release date: 2015-03-27
+    search_from_date = datetime.date(2019, 3, 27)  # Keras release date: 2015-03-27
     query_search_from = 'created:>=' + search_from_date.isoformat()
     query_sort_by = 'score'  # updated, stars, forks, default: score
     query = query_search_terms + '+' + query_stop_words + '+' + query_search_locations + '+language:python+' + \
             query_search_from + '&sort=' + query_sort_by + '&order=desc'
 
     # Retrieve local access token for GitHub API access
-    with open('GitHub_Access_Token.txt', 'r') as f:
+    with open('DataCollection/credentials/GitHub_Access_Token.txt', 'r') as f:
         access_tokens = f.readlines()
 
+    # List tokens
     access_tokens = [token.rstrip('\n') for token in access_tokens]
+
+    # Determine length of rotation cycle
     rotation_cycle = len(access_tokens)
 
     # print('Total number of requests: %d' % n_search_requests)
@@ -88,7 +86,6 @@ if __name__ == "__main__":
 
     # Create initial url from query
     url = 'https://api.github.com/search/repositories?page=1&per_page=' + str(n_results_per_page) + '&q=' + query
-
     # print(url)
 
     # Set results number and token counter to zero
@@ -112,35 +109,35 @@ if __name__ == "__main__":
         n_results = json.loads(response.text).get('total_count')  # Query total count from response
         print('\n\nTotal number of repositories found: %d\n' % n_results)
         print('Initial request successful')
+        print('N Repo: %d' % len(json.loads(response.text).get('items')))
     end_time = time.time()  # Stop timer
     time_diff = end_time - begin_query  # Calculate duration of query response
 
     # Calculate total time period to search
-    date_tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    time_delta = (date_tomorrow - search_from_date).days
+    date_tomorrow = datetime.date.today() + datetime.timedelta(days=1)  # Search end data (= tomorrow's date)
+    date_today = datetime.date.today()
+    time_delta = (date_tomorrow - search_from_date).days  # Search time period length in days
 
-    avg_daily_results = n_results / time_delta
-    avg_period = 1000 / avg_daily_results
-
-    # Print out search progress as progress bar
-    # print_progress(token_counter + 1, n_results / avg_period, prog='Request avg: %g' % round(time_diff, 2),
-    #                time_lapsed=end_time - start_time)
+    avg_daily_results = n_results / time_delta  # Average number of search results per day
+    avg_period = 1000 / avg_daily_results  # Average period length yielding 1000 search results (API limit)
 
     print('\nAverage daily results: ' + str(avg_daily_results))
     print('Average period: ' + str(avg_period))
 
-    # Set length for search period chunks to 50 days
+    # Set length for search period to average period yielding 1000 results
     period_length = datetime.timedelta(days=avg_period)
     print('Period length (days): %d\n\n' % period_length.days)
-    last_date = search_from_date + period_length
-    if last_date > date_tomorrow:
-        last_date = date_tomorrow - datetime.timedelta(days=1)
 
-    slack = avg_period / float(period_length.days)
+    # Specify last date for current search iteration
+    last_date = search_from_date + period_length
+
+    # If last date is in the future, set last_data to date_tomorrow
+    if last_date > date_today:
+        last_date = date_today
 
     # Iterate over time deltas
     # Make URL request to GitHub API by date range chunks (due to limit of 1000 results per search request)
-    while last_date < date_tomorrow:
+    while True:
         # Determine current token index and increment counter
         token_index = token_counter % rotation_cycle
         token_counter += 1  # Increase counter
@@ -148,22 +145,30 @@ if __name__ == "__main__":
 
         time_frame = 'created:' + search_from_date.isoformat() + '..' + last_date.isoformat()
         # print('Timeframe: %s' % time_frame)
+
         # Create search query
         query = query_search_terms + '+' + query_stop_words + '+' + query_search_locations + '+language:python+' + \
                 time_frame + '&sort=' + query_sort_by + '&order=desc'
 
+        print('\n\n')
+        print(query)
+
         # Create initial url from query
         url = 'https://api.github.com/search/repositories?page=1&per_page=' + str(n_results_per_page) + '&q=' + query
+
         # Submit request and time response
         begin_query = time.time()
         response = requests.get(url, headers=headers)
         repo_count = json.loads(response.text).get('total_count')
-        print('Number of Repos: %d' % repo_count)
+        print('\nNumber of Repos: %d' % repo_count)
+
+        # If number of found repositories exceeds limit of 1000 search results, reduce period_length
+        slack = 0.8
         if repo_count > 1000:
             delta_period_length = datetime.timedelta(
-                floor((1000 / float(repo_count)) * period_length.days)) - period_length
-            last_date = last_date + delta_period_length
-            period_length += delta_period_length
+                days=floor(((repo_count / 1000.0) - slack) * period_length.days))
+            last_date = last_date - delta_period_length
+            period_length -= delta_period_length
             print('Change of period length to: %d' % period_length.days)
             continue
         else:
@@ -175,11 +180,12 @@ if __name__ == "__main__":
         # Append repositories to list
         repo_list.extend(json_data.get('items', {}))
 
+        # Increase page counter
         page_counter += 1
         end_time = time.time()
 
         # Print search progress as progress bar
-        print_progress(page_counter, ceil(n_results / (100 * slack)),
+        print_progress(page_counter, ceil(n_results / 100.0),
                        prog='Last request (first of new): %g' % round(time_diff, 2),
                        time_lapsed=end_time - start_time)
 
@@ -190,27 +196,30 @@ if __name__ == "__main__":
 
         # Print status code and encoding
         if response.status_code == 200:
+            # Iterate through returned pages
             iterate_pages(response)
 
         else:
             # If request unsuccessful, print error message
             print('Request failed. Error code: %d - %s' % (response.status_code, response.reason))
 
-        search_from_date = last_date
-        last_date += period_length
+        # Set search date window to next time frame
+        search_from_date = last_date + datetime.timedelta(days=1)
+
+        # Check if end of search time frame is reached
+        if last_date == date_today:
+            break  # End search iterations
+        elif last_date + period_length > date_today:
+            last_date = date_today  # Restrict search time frame to past
+        else:
+            last_date += period_length  # If end not reached, increase last date by period length
 
     # Save json file locally in specified location
-    with open('Repo_Search_Results.json', 'w', encoding='utf8') as json_file:
-        json.dump(repo_list, json_file)
+    # with open('Repo_Search_Results.json', 'w', encoding='utf8') as json_file:
+    #     json.dump(repo_list, json_file)
 
-    print('Number of saved repositories: %d' % len(repo_list))
-
-    # Open file and display data
-    # with open('Repo_Search_Results.json', 'r', encoding='utf8') as json_file:
-    #     data = json.load(json_file)
-    #
-    # data_frame = pd.DataFrame(data)
-    # print(data_frame.get('html_url', {}))
+    # Print number of saved repositories
+    print('\n\nNumber of saved repositories: %d' % len(repo_list))
 
     # Initialize data list for json export
     data = []
@@ -221,7 +230,7 @@ if __name__ == "__main__":
 
     repo_count = len(repo_list)
 
-    # Iterate through repositories in list
+    # Iterate through repositories in list and save metadata
     for repo_index, repo in enumerate(repo_list):
         # Seach for 'save' in .py file
         # query_url = 'https://api.github.com/search/code?q=save+extension:py+repo:' + repo['full_name']
@@ -285,8 +294,9 @@ if __name__ == "__main__":
     #       'True: %d \n' % true_count +
     #       'False: %d \n' % false_count)
 
+    # Create MongoDB collection instance
     collection = DataCollection.DataCollection('Repositories')
-    print(collection)
+    # print(collection)
 
     # Insert data into database if list is not empty
     if data:

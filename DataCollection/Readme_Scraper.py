@@ -9,15 +9,15 @@ import requests
 import pymongo
 from bson import ObjectId
 from bson.json_util import dumps
-import pandas as pd
 from bs4 import BeautifulSoup
 from markdown import markdown
+from pandas import read_json
 
 from Helper_Functions import print_progress
 
 if __name__ == '__main__':
     # Retrieve database credentials
-    cred_path = 'connection_creds.txt'
+    cred_path = './credentials/connection_creds.txt'
     with open(cred_path, 'r') as f:
         connection_string = f.read()
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     data = dumps(collection.find(projection=['repo_url']))
 
     # Make DataFrame from json
-    data_frame = pd.read_json(data)
+    data_frame = read_json(data)
 
     # Extract repository name from URL and append as new column
     data_frame['repo_name'] = data_frame['repo_url'].apply(lambda x: '/'.join(x.split('/')[-2:]))

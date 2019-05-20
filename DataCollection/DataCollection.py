@@ -15,7 +15,7 @@ class DataCollection:
         """
 
         # Establish database connection
-        self.cred_path = 'connection_creds.txt'  # Path to database login credentials
+        self.cred_path = 'DataCollection/credentials/connection_creds.txt'  # Path to database login credentials
 
         # Read connection string from text file
         with open(self.cred_path, 'r') as f:
@@ -31,8 +31,8 @@ class DataCollection:
         :return: string representation of DataCollection instance
         """
 
-        # Return database server info
-        return json.dumps(self.client.server_info(), default=json_util.default, sort_keys=True, indent=3)
+        # Return collection
+        return 'Current collection: %s' % self.collection_object.full_name
 
     def delete_duplicates(self):
         """
@@ -64,6 +64,14 @@ class DataCollection:
               self.collection_object.count_documents({'has_structure': True}))
 
     def count_duplicates(self):
+        """
+        Counts duplicate entries in collection by repo_url
+        :return:
+            n_docs: total number of documents in collection
+            n_structure: number of documents with structure information
+            n_duplicates: number of duplicate documents in collection
+
+        """
         cursor = self.collection_object.aggregate(
             [
                 {"$group": {"_id": "$repo_url", "unique_ids": {"$addToSet": "$_id"}, "count": {"$sum": 1}}},

@@ -4,5 +4,3 @@ pymongo
 requests
 numpy
 pandas
-pymongo
-bson

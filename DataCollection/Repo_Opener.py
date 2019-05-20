@@ -6,10 +6,9 @@ import pandas as pd
 from pymongo import MongoClient
 
 if __name__ == '__main__':
-
     repo_links = []
 
-    cred_path = 'C:/Users/svenk/PycharmProjects/GitHub_Scraping/connection_creds.txt'
+    cred_path = './credentials/connection_creds.txt'
     with open(cred_path, 'r') as f:
         connection_string = f.read()
 
@@ -28,3 +27,4 @@ if __name__ == '__main__':
 
     print(data['repo_desc'].str.contains('keras', regex=False).sum())
     print(data['readme_text'].str.contains('keras', regex=False).sum())
+    print(data['repo_name'].str.contains('keras', regex=False).sum())
