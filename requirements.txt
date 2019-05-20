@@ -1,3 +1,4 @@
+rdflib
 h5py
 scrapy
 pymongo
