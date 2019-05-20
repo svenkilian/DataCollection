@@ -99,9 +99,6 @@ if __name__ == "__main__":
     # Specify header with authentication for first query
     headers = {'Authorization': 'token ' + access_tokens[0]}
 
-    # Increase token counter
-    token_counter += 1
-
     # Start timer for search request and submit API request
     begin_query = time.time()
     start_time = time.time()
