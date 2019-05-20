@@ -48,8 +48,6 @@ def iterate_pages(resp):
                 token_counter + 1, n_search_requests, resp.status_code, resp.reason))
 
 
-
-
 if __name__ == "__main__":
 
     # Configure number and size of requests (responses are paginated)
@@ -114,7 +112,6 @@ if __name__ == "__main__":
         n_results = json.loads(response.text).get('total_count')  # Query total count from response
         print('\n\nTotal number of repositories found: %d\n' % n_results)
         print('Initial request successful')
-        print('N Repo: %d' % len(json.loads(response.text).get('items')))
     end_time = time.time()  # Stop timer
     time_diff = end_time - begin_query  # Calculate duration of query response
 
@@ -155,9 +152,6 @@ if __name__ == "__main__":
         query = query_search_terms + '+' + query_stop_words + '+' + query_search_locations + '+language:python+' + \
                 time_frame + '&sort=' + query_sort_by + '&order=desc'
 
-        print('\n\n')
-        print(query)
-
         # Create initial url from query
         url = 'https://api.github.com/search/repositories?page=1&per_page=' + str(n_results_per_page) + '&q=' + query
 
@@ -165,7 +159,7 @@ if __name__ == "__main__":
         begin_query = time.time()
         response = requests.get(url, headers=headers)
         repo_count = json.loads(response.text).get('total_count')
-        print('\nNumber of Repos: %d' % repo_count)
+        # print('\nNumber of Repos: %d' % repo_count)
 
         # If number of found repositories exceeds limit of 1000 search results, reduce period_length
         slack = 0.8
