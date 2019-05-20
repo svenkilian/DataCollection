@@ -34,11 +34,10 @@ if __name__ == '__main__':
     cc = Namespace('http://creativecommons.org/ns#')
 
     # # Load pickled data
-    # df_github = pd.read_pickle('./data/GithubNew.pkl')
-    # df_github['licence'] = df_github['licence'].apply(lambda x: str(x))
+    df_github = pd.read_json('./data/GitHub_Data.json')
 
-    # print(df_github.head())
+    print(df_github.columns)
+    print(df_github[['h5', 'h5-nr']])
+    # print(zip(df_github['h5'].to_list(), df_github['h5-nr'].to_list()))
 
-    with open('C:/Users/Sven/PycharmProjects/DataCollection/DataCollection/data/GithubNew.pkl', 'r') as file:
-        data = pickle.load(file)
-        json.dump(data, 'GithubNew.json')
+    # print(df_github['json-nr'])
