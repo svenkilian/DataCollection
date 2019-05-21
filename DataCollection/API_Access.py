@@ -270,6 +270,7 @@ if __name__ == "__main__":
         # Speicify repo meta data to be extracted from API response
         item = {'repo_url': repo['html_url'],
                 'repo_name': repo['name'],
+                'repo_full_name': repo['full_name'],
                 'repo_owner': repo['owner']['login'],
                 'repo_desc': repo['description'],
                 'repo_ext_links': None,

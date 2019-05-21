@@ -1,3 +1,4 @@
+docutils
 rdflib
 h5py
 scrapy
