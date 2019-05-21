@@ -111,6 +111,6 @@ if __name__ == "__main__":
     print('Number of entries with structure information: %d' %
           collection.collection_object.count_documents({'has_structure': True}))
 
-    # collection.collection_object.delete_duplicates(collection)
+    collection.delete_duplicates()
     # # clear_all_entries(collection)  # Use to clear all entries
     # collection.collection_object.count_duplicates(collection)

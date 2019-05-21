@@ -4,7 +4,7 @@ import json
 import time
 from math import ceil, floor
 import requests
-from DataCollection.Helper_Functions import print_progress
+from Helper_Functions import print_progress
 import DataCollection
 
 
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     search_locations = ['title', 'readme', 'description']  # Specify locations to search
     query_search_locations = '+'.join(['in:' + location for location in search_locations])
-    search_from_date = datetime.date(2019, 3, 27)  # Keras release date: 2015-03-27
+    search_from_date = datetime.date(2019, 5, 18)  # Keras release date: 2015-03-27
     query_search_from = 'created:>=' + search_from_date.isoformat()
     query_sort_by = 'score'  # updated, stars, forks, default: score
     query = query_search_terms + '+' + query_stop_words + '+' + query_search_locations + '+language:python+' + \
@@ -273,7 +273,18 @@ if __name__ == "__main__":
                 'repo_ext_links': None,
                 'repo_last_mod': repo['updated_at'],
                 'repo_watch': repo['watchers_count'],
-                'repo_forks': repo['forks_count']}
+                'repo_forks': repo['forks_count'],
+                'private': repo['private'],
+                'repo_created_at': repo['created_at'],
+                'homepage': repo['homepage'],
+                'size': repo['size'],
+                'language': repo['language'],
+                'has_wiki': repo['has_wiki'],
+                'license': repo['license'],
+                'open_issues_count': repo['open_issues_count'],
+                # 'subscribers_count': repo['subscribers_count'],
+                'github_id': repo['id'],
+                'is_fork': repo['fork']}
 
         # # Add architecture attribute
         # if has_architecture:
