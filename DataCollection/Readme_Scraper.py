@@ -19,6 +19,31 @@ from docutils.core import publish_parts
 from Helper_Functions import print_progress
 
 
+def parse_readme_to_text(response):
+    # Request successful
+    if response.status_code == 200:
+        # Convert markdown to html
+        text = markdown(response.text)
+        # Extract text and remove all line breaks
+        text = ''.join(BeautifulSoup(text, features='lxml').find_all(text=True))
+        text = text.replace('\n', ' ').replace('\t', ' ').replace('\t', '')
+
+    # Request unsuccessful
+    elif response.status_code == 404:
+        text = publish_parts(response.text, writer_name='html')['html_body']
+        # Extract text and remove all line breaks
+        text = ''.join(BeautifulSoup(text, features='lxml').find_all(text=True))
+        text = text.replace('\n', ' ').replace('\t', ' ').replace('\t', '')
+
+        print(' - Response status code 404: Page not found')
+
+    else:
+        text = None
+        print(' - Unexpected response code: %d' % response.status_code)
+
+    return text
+
+
 def get_readme(repos, access_path):
     # Start timer
     start_time = time.time()
@@ -52,28 +77,7 @@ def get_readme(repos, access_path):
         # Query API for readme file
         response = requests.get(readme_path, headers=headers)
 
-        text = ''
-
-        # Request successful
-        if response.status_code == 200:
-            # Convert markdown to html
-            text = markdown(response.text)
-            # Extract text and remove all line breaks
-            text = ''.join(BeautifulSoup(text, features='lxml').find_all(text=True))
-            text = text.replace('\n', ' ').replace('\t', ' ').replace('\t', '')
-
-        # Request unsuccessful
-        elif response.status_code == 404:
-            text = publish_parts(response.text, writer_name='html')['html_body']
-            # Extract text and remove all line breaks
-            text = ''.join(BeautifulSoup(text, features='lxml').find_all(text=True))
-            text = text.replace('\n', ' ').replace('\t', ' ').replace('\t', '')
-
-            print(' - Response status code 404: Page not found')
-
-        else:
-            text = None
-            print(' - Unexpected response code: %d' % response.status_code)
+        text = parse_readme_to_text(response)
 
         # print(text)
         # print(repo['_id'])

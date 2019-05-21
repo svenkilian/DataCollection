@@ -7,6 +7,7 @@ import time
 from math import ceil, floor
 import requests
 from Helper_Functions import print_progress
+from Readme_Scraper import parse_readme_to_text
 import DataCollection
 
 
@@ -70,14 +71,14 @@ if __name__ == "__main__":
 
     search_locations = ['title', 'readme', 'description']  # Specify locations to search
     query_search_locations = '+'.join(['in:' + location for location in search_locations])
-    search_from_date = datetime.date(2019, 5, 18)  # Keras release date: 2015-03-27
+    search_from_date = datetime.date(2019, 5, 21)  # Keras release date: 2015-03-27
     query_search_from = 'created:>=' + search_from_date.isoformat()
     query_sort_by = 'score'  # updated, stars, forks, default: score
     query = query_search_terms + '+' + query_stop_words + '+' + query_search_locations + '+language:python+' + \
             query_search_from + '&sort=' + query_sort_by + '&order=desc'
 
     # Retrieve local access token for GitHub API access
-    with open('DataCollection/credentials/GitHub_Access_Token.txt', 'r') as f:
+    with open(os.path.join(ROOT_DIR, 'DataCollection/credentials/GitHub_Access_Token.txt'), 'r') as f:
         access_tokens = f.readlines()
 
     # List tokens
@@ -233,10 +234,27 @@ if __name__ == "__main__":
         # Seach for 'save' in .py file
         # query_url = 'https://api.github.com/search/code?q=save+extension:py+repo:' + repo['full_name']
 
+        # Determine current token index and increment counter
         token_index = token_counter % rotation_cycle
         token_counter += 1
-        headers = {'Authorization': 'token ' + access_tokens[token_index]}
 
+        url = 'https://api.github.com/repos/'
+
+        # Specify path to readme file
+        readme_path = url + repo['full_name'] + '/readme'
+
+        # Specify request header consisting of authorization and accept string
+        headers = {'Authorization': 'token ' + access_tokens[token_index],
+                   'Accept': 'application/vnd.github.com.v3.raw'}
+
+        # Query API for readme file
+        response = requests.get(readme_path, headers=headers)
+
+        readme_text = parse_readme_to_text(response)
+        has_readme = True if readme_text is not (None or '') else False
+
+
+        # TODO: Search for h5 files in subroutine
         # # Specify search for file extensions '.h5' and 'hdf5'
         # query_url = 'https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:' + repo['full_name']
         # print(repo['full_name'])
@@ -287,7 +305,8 @@ if __name__ == "__main__":
                 'open_issues_count': repo['open_issues_count'],
                 # 'subscribers_count': repo['subscribers_count'],
                 'github_id': repo['id'],
-                'is_fork': repo['fork']}
+                'is_fork': repo['fork'],
+                'readme_text': readme_text}
 
         # # Add architecture attribute
         # if has_architecture:
