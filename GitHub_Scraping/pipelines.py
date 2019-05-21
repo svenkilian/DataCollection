@@ -22,7 +22,7 @@ class GithubScrapingPipeline(object):
         # db = connection[settings['MONGODB_DB']]
         # self.collection = db[settings['MONGODB_COLLECTION']]
 
-        cred_path = 'C:/Users/svenk/PycharmProjects/GitHub_Scraping/connection_creds.txt'
+        cred_path = 'C:/Users/svenk/PycharmProjects/DataCollection/connection_creds.txt'
         print(cred_path)
 
         with open(cred_path, 'r') as f:

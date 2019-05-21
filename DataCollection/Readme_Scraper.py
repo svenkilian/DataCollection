@@ -1,6 +1,8 @@
 """
 This class extracts the repository README.md and saves the plain text in the database
 """
+from config import ROOT_DIR
+import os
 import json
 import time
 

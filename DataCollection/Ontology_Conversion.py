@@ -1,3 +1,5 @@
+from config import ROOT_DIR
+import os
 from rdflib import Graph, BNode, ConjunctiveGraph, URIRef, Literal, Namespace, RDF, RDFS
 from tqdm import tqdm
 import pandas as pd
@@ -24,7 +26,7 @@ if __name__ == '__main__':
     cc = Namespace('http://creativecommons.org/ns#')
 
     # # Load pickled data
-    df_github = pd.read_json('C:/Users/svenk/PycharmProjects/GitHub_Scraping/DataCollection/data/GitHub_Data.json')
+    df_github = pd.read_json('C:/Users/svenk/PycharmProjects/DataCollection/DataCollection/data/GitHub_Data.json')
 
     print(df_github.columns)
 

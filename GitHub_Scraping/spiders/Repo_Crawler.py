@@ -22,7 +22,7 @@ class RepoCrawlerSpider(scrapy.Spider):
     # data = pd.read_json('C:/Users/svenk/Google Drive/[04] Stuff/Query Results/repositories.json', lines=True)
     # cnn_data = data[data['repo_name'].str.contains('cnn')]
 
-    data = pd.read_json('C:/Users/svenk/PycharmProjects/GitHub_Scraping/Repo_Search_Results.json')
+    data = pd.read_json('C:/Users/svenk/PycharmProjects/DataCollection/Repo_Search_Results.json')
 
     # Initialize and populate list from Pandas DataFrame
     repo_list = []
@@ -81,6 +81,6 @@ if __name__ == "__main__":
     process.start()
 
     # scraped_data = [json.loads(line) for line in
-    #                 open('C:/Users/svenk/PycharmProjects/GitHub_Scraping/data/data.json', 'r', encoding='utf8')]
+    #                 open('C:/Users/svenk/PycharmProjects/DataCollection/data/data.json', 'r', encoding='utf8')]
     # scraped_data_df = pd.DataFrame(scraped_data)
-    # scraped_data_df.to_csv('C:/Users/svenk/PycharmProjects/GitHub_Scraping/data/DataLog.csv', sep=',', header=True, index=0)
+    # scraped_data_df.to_csv('C:/Users/svenk/PycharmProjects/DataCollection/data/DataLog.csv', sep=',', header=True, index=0)

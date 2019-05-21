@@ -1,3 +1,5 @@
+from config import ROOT_DIR
+import os
 import pymongo
 from bson import json_util
 import json
@@ -15,7 +17,8 @@ class DataCollection:
         """
 
         # Establish database connection
-        self.cred_path = 'DataCollection/credentials/connection_creds.txt'  # Path to database login credentials
+        self.cred_path = os.path.join(ROOT_DIR,
+                                      'DataCollection/credentials/connection_creds.txt')  # Path to database login credentials
 
         # Read connection string from text file
         with open(self.cred_path, 'r') as f:

@@ -1,4 +1,6 @@
 # This class implements database access to GitHub's REST-API for search queries
+from config import ROOT_DIR
+import os
 import datetime
 import json
 import time

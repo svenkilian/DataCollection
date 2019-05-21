@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Scrapy settings for GitHub_Scraping project
+# Scrapy settings for DataCollection project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -10,19 +10,19 @@
 #     https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
 
-BOT_NAME = 'GitHub_Scraping'
+BOT_NAME = 'DataCollection'
 LOG_LEVEL = 'INFO'
 LOG_ENABLED = False
 
-SPIDER_MODULES = ['GitHub_Scraping.spiders']
-NEWSPIDER_MODULE = 'GitHub_Scraping.spiders'
+SPIDER_MODULES = ['DataCollection.spiders']
+NEWSPIDER_MODULE = 'DataCollection.spiders'
 
 FEED_FORMAT = 'csv'
 FEED_URI = '../../data/results.csv'
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'GitHub_Scraping (+http://www.yourdomain.com)'
+#USER_AGENT = 'DataCollection (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
@@ -53,13 +53,13 @@ ROBOTSTXT_OBEY = False
 # Enable or disable spider middlewares
 # See https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    'GitHub_Scraping.middlewares.GithubScrapingSpiderMiddleware': 543,
+#    'DataCollection.middlewares.GithubScrapingSpiderMiddleware': 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    'GitHub_Scraping.middlewares.GithubScrapingDownloaderMiddleware': 543,
+#    'DataCollection.middlewares.GithubScrapingDownloaderMiddleware': 543,
 #}
 
 # Enable or disable extensions
@@ -71,7 +71,7 @@ ROBOTSTXT_OBEY = False
 # Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    'GitHub_Scraping.pipelines.GithubScrapingPipeline': 300,
+    'DataCollection.pipelines.GithubScrapingPipeline': 300,
 }
 
 MONGODB_SERVER = 'localhost'
