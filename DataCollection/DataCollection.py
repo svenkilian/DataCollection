@@ -105,15 +105,23 @@ class DataCollection:
 
 
 if __name__ == "__main__":
-    collection = DataCollection('Repositories')
+    collection = DataCollection('Repos_Exp')
 
     # Print database server info
     print(collection)
 
     print('Number of entries in database: %d' % collection.collection_object.count_documents({}))
-    print('Number of entries with structure information: %d' %
-          collection.collection_object.count_documents({'has_structure': True}))
 
     # collection.delete_duplicates()
     # collection.clear_all_entries()  # Use to clear all entries
-    collection.count_duplicates()
+    # collection.count_duplicates()
+
+    n_docs = collection.collection_object.count_documents({})
+    n_structure = collection.collection_object.count_documents({'has_h5': True})
+    n_no_structure = collection.collection_object.count_documents({'has_h5': False})
+
+    print('Number of entries in database: %d' % n_docs)
+    print('Number of entries with structure information: %d' % n_structure)
+    print('Number of entries without structure information: %d \n' % n_no_structure)
+
+

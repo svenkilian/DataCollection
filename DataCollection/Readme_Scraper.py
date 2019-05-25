@@ -19,83 +19,32 @@ from docutils.core import publish_parts
 from Helper_Functions import print_progress
 
 
-def parse_readme_to_text(response):
+def get_readme(response):
     # Request successful
     if response.status_code == 200:
-        # Convert markdown to html
-        text = markdown(response.text)
+        # # Convert markdown to html
+        # text = markdown(response.text)
         # Extract text and remove all line breaks
-        text = ''.join(BeautifulSoup(text, features='lxml').find_all(text=True))
-        text = text.replace('\n', ' ').replace('\t', ' ').replace('\t', '')
+        text = ''.join(BeautifulSoup(response.text, features='lxml').find_all(text=True))
+        text = text.replace('\n', ' ').replace('\t', ' ').replace('\r', '')
+
+        # Set text to null if empty string
+        if text == '':
+            text = None
 
     # Request unsuccessful
     elif response.status_code == 404:
-        text = publish_parts(response.text, writer_name='html')['html_body']
-        # Extract text and remove all line breaks
-        text = ''.join(BeautifulSoup(text, features='lxml').find_all(text=True))
-        text = text.replace('\n', ' ').replace('\t', ' ').replace('\t', '')
-
-        print(' - Response status code 404: Page not found')
+        text = None
+        # print(' - Repository without readme found for: %s\n%s' % (response.text, response.request.url))
 
     else:
         text = None
-        print(' - Unexpected response code: %d' % response.status_code)
+        print('Unknown error occurred while parsing readme file: %d' % response.status_code)
+        print(response.reason)
+        if response.status_code == 403:
+            print('Access denied.')
 
     return text
-
-
-def get_readme(repos, access_path):
-    # Start timer
-    start_time = time.time()
-    counter = 1
-
-    # Retrieve local access token for GitHub API access
-    with open(access_path, 'r') as f:
-        access_tokens = f.readlines()
-    # List tokens
-    access_tokens = [token.rstrip('\n') for token in access_tokens]
-    # Determine length of rotation cycle and set counter to 0
-    rotation_cycle = len(access_tokens)
-    token_counter = 0
-
-    url = 'https://api.github.com/repos/'
-
-    # Iterate through repository list
-    for index, repo in repos.iterrows():
-        begin_time = time.time()
-        # Determine current token index and increment counter
-        token_index = token_counter % rotation_cycle
-        token_counter += 1
-
-        # Specify path to readme file
-        readme_path = url + repo['repo_full_name'] + '/readme'
-
-        # Specify request header consisting of authorization and accept string
-        headers = {'Authorization': 'token ' + access_tokens[token_index],
-                   'Accept': 'application/vnd.github.com.v3.raw'}
-
-        # Query API for readme file
-        response = requests.get(readme_path, headers=headers)
-
-        text = parse_readme_to_text(response)
-
-        # print(text)
-        # print(repo['_id'])
-
-        repo_id = repo['_id'].get('$oid')
-        collection.find_one_and_update(
-            {'_id': ObjectId(repo_id)},
-            {'$set': {'readme_text': text}}
-        )
-
-        end_time = time.time()
-        time_diff = end_time - begin_time
-
-        # Print search progress as progress bar
-        print_progress(counter, len(repos), prog='Last DB write: %g' % round(time_diff, 2),
-                       time_lapsed=end_time - start_time)
-
-        counter += 1
 
 
 def set_full_name(repos):
@@ -226,4 +175,4 @@ if __name__ == '__main__':
     # thread_1.start()
     # thread_2.start()
 
-    get_readme(repos, access_path=cred_path_1)
+    get_readme(repos, access_path=cred_path_1, collection=collection)

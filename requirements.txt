@@ -1,3 +1,8 @@
+bson
+beautifulsoup4
+markdown
+pycountry
+polyglot
 docutils
 rdflib
 h5py

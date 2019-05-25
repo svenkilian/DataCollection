@@ -1,3 +1,5 @@
+import datetime
+
 from config import ROOT_DIR
 import os
 from rdflib import Graph, BNode, ConjunctiveGraph, URIRef, Literal, Namespace, RDF, RDFS
@@ -26,18 +28,21 @@ if __name__ == '__main__':
     cc = Namespace('http://creativecommons.org/ns#')
 
     # # Load pickled data
-    df_github = pd.read_json('C:/Users/svenk/PycharmProjects/DataCollection/DataCollection/data/GitHub_Data.json')
+    df_github = pd.read_json(os.path.join(ROOT_DIR, 'DataCollection/data/GitHub_Data.json'))
 
+    # Print columns
     print(df_github.columns)
 
+    # Convert license to string
     df_github['licence'] = df_github['licence'].apply(lambda x: str(x))
 
-    # Select only Models without Architectures.
+    # Select only Models without Architectures
     # df_github = df_github[df_github['h5-nr'] == 0]
 
+    # Print repositories with h5 file
     print(df_github[df_github['h5'].notna()][['h5', 'h5-nr']])
 
-    ## General Information about Ontology
+    # General Information about Ontology
     tmp = URIRef('https://w3id.org/nno/data')
     g.add((tmp, dc.publisher, URIRef('http://www.aifb.kit.edu/web/Web_Science')))
     g.add((tmp, owl.versionInfo, Literal(1)))
@@ -48,46 +53,55 @@ if __name__ == '__main__':
     g.add((tmp, dc.description,
            Literal('This is the FAIRnets dataset. It contains Information about publicly available Neural Networks.')))
 
-    g.add((tmp, dc.issued, Literal('2019-04-08')))
+    date_today = datetime.date.today().isoformat()
+    g.add((tmp, dc.issued, Literal(date_today)))
     g.add((tmp, RDFS.label, Literal('FAIRnets Dataset')))
     g.add((tmp, vs.term_status, Literal('stable')))
     g.add((tmp, cc.licence, URIRef('https://creativecommons.org/licenses/by-nc-sa/4.0/')))
 
+    # JOB: Iterate through repositories in data base
     for idx, row in tqdm(df_github.iterrows(), total=df_github.shape[0]):
-        # modelname example (user+github repo): huohuotm/CarND-BehavioralCloning
+        # model name example (user+github repo): huohuotm/CarND-BehavioralCloning
         modelName = row['name'][1:].replace('/', '-')
         owner = '/'.join(row['link'].split('/')[:-1])
 
-        # Create Neural Network
+        # Create Neural Network and assign model name
         nn = URIRef(base + row['name'][1:])
         g.add((nn, RDF.type, ontologyURI.Neural_Network))
         if len(row['description']) > 0:
             g.add((nn, dc.description, Literal(row['description'])))
         g.add((nn, RDFS.label, Literal(modelName)))
 
+        # Assign owner to model
         if owner.startswith('http'):
             g.add((nn, dc.creator, URIRef(owner)))
+
+        # Assign link to model
         if row['link'].startswith('http'):
             g.add((nn, ontologyURI.hasRepositoryLink, URIRef(row['link'])))
+
+        # Assign last modified date
         g.add((nn, dc.modified, Literal(row['update'])))
+
+        # Assign publishing website
         g.add((nn, dc.publisher, URIRef('https://github.com')))
         # stars
         # if isinstance(row['stars'], float) and not math.isnan(float(row['stars'])):
         #    g.add((nn, ontologyURI.stars, Literal(int(row['stars']))))
 
-        # Licence
+        # Add license
         if len(row['licence']) > 0 and row['licence'] != 'nan':
             licence = URIRef(ontology + row['licence'].replace('"', ''))
             g.add((nn, dc.license, licence))
 
-        # References
+        # Add reference links within readme
         if isinstance(row['references'], str) and row['references'] is not None:
             for ref in row['references'].split(';'):
                 ref = ref.split(' ')[0].replace('"', '')
                 if '<' not in ref and '>' not in ref and ('http:' in ref or 'https:' in ref):
                     g.add((nn, dc.references, URIRef(ref)))
 
-        # seeAlso
+        # Add seeAlso
         if isinstance(row['seeAlso'], str) and row['seeAlso'] is not None:
             for ref in row['seeAlso'].split(';'):
                 ref = ref.split(' ')[0].replace('"', '')

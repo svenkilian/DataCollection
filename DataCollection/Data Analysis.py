@@ -1,15 +1,19 @@
+from tqdm import tqdm
+
 from config import ROOT_DIR
 import os
 import requests
 import pymongo
-import pandas
+import pandas as pd
+import numpy as np
 import json
 from bson.json_util import dumps, loads
 # import matplotlib.pyplot as plt
-import pandas as pd
 # import seaborn as sns
-from langdetect import detect, detect_langs
-from langdetect.lang_detect_exception import LangDetectException
+
+from polyglot.text import Text
+import pycountry as country
+import seaborn as sns
 
 if __name__ == '__main__':
     # Retrieve database credentials
@@ -17,17 +21,17 @@ if __name__ == '__main__':
     cred_path = os.path.join(ROOT_DIR, 'DataCollection/credentials/connection_creds.txt')
     path_to_data = os.path.join(ROOT_DIR, 'DataCollection/data/data.json')
 
-    with open(cred_path, 'r') as f:
-        connection_string = f.read()
-
+    # with open(cred_path, 'r') as f:
+    #     connection_string = f.read()
+    #
     # # Establish database connection
     # client = pymongo.MongoClient(connection_string)
-    # collection = client.GitHub.Repositories
+    # collection = client.GitHub.Repos_Exp
     # print(client.server_info())
     #
     # # Save database query result to json
     # data = dumps(collection.find({}))
-    # print(data)
+    # # print(data)
     # with open(path_to_data, 'w') as file:
     #     file.write(data)
 
@@ -37,24 +41,43 @@ if __name__ == '__main__':
 
     # Make DataFrame from json
     data_frame = pd.DataFrame(data)
+    print(data_frame[['repo_full_name', 'readme_text']].iloc[0:10])
 
-    # columnNames = list(data_frame.head(0))
-    # print(columnNames)
+    access_path = os.path.join(ROOT_DIR, 'DataCollection/credentials/GitHub_Access_Token.txt')
+
+    # Print column names
+    print(data_frame.columns)
 
     # data_frame['year'] = data_frame['repo_created_at'].dt.year
 
-    # try:
-    #     data_frame['language_readme'] = data_frame['readme_text'].apply(lambda x: str(detect_langs(x)[:]))
-    #     # data_frame['language_readme'] = str(detect_langs('This is such a beautiful Tag dans la cité. Und er wird besser! Très joyeuse, jedes Mal! Das darf aber dann keiner erfahren.')[:])
-    # except LangDetectException:
-    #     data_frame['language_readme'] = ""
+    for index, row in tqdm(data_frame.iterrows(), total=data_frame.shape[0]):
+        try:
+            if row['readme_text'] is not ('' or None):
+                text = Text(str(row['readme_text']))
+                language_code = text.language.code
+                if language_code is not None:
+                    language_name = country.languages.get(alpha_2=language_code).name
+                else:
+                    language_name = None
+            else:
+                language_name = None
+                language_code = None
+        except AttributeError as ae:
+            language_name = None
+            language_code = None
 
-    # print(data_frame['language_readme'])
-    print(data_frame['readme_text'][data_frame['readme_text'].str.contains('"message":"Not Found"', regex=True)].iloc[1])
+        data_frame.at[index, 'language_readme'] = language_name
+        data_frame.at[index, 'language_readme_code'] = language_code
 
-    count = data_frame['readme_text'].str.contains('"message":"Not Found"', regex=True).sum()
+    print(data_frame[['readme_text', 'language_readme']])
 
-    print(count)
+    data_frame['language_readme'].astype('category')
+
+    print(data_frame['language_readme'].unique())
+    print(data_frame.groupby(['language_readme', 'language_readme_code']).size().reset_index(name='Count').sort_values(
+        'Count'))
+
+    data_frame.to_excel(r'Output.xlsx', engine='xlsxwriter')
 
     # repo_count_per_year = data_frame.groupby(['year']).size().reset_index(name='counts of repos')
     # print(repo_count_per_year)
@@ -75,5 +98,3 @@ if __name__ == '__main__':
     # #sns.heatmap(corr, xticklabels=corr.columns, yticklabels=corr.columns,
     #             cmap=sns.diverging_palette(220, 10, as_cmap=True))
     # #plt.show()
-
-
