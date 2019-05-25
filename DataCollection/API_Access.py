@@ -304,6 +304,18 @@ def seach_repos(start_date, end_date, tokens):
         query_url = 'https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:' + repo['full_name']
         response = requests.get(query_url, headers=headers)
 
+        try:
+            print('\n\nRemaining/Limit for token %d: %d/%d' % (token_index,
+                                                               int(response.headers['X-RateLimit-Remaining']),
+                                                               int(response.headers['X-RateLimit-Limit'])))
+            if int(response.headers['X-RateLimit-Remaining'] <= 3):
+                time.sleep(2)
+                print('Execution paused for 2 seconds.')
+            else:
+                pass
+        except KeyError as e:
+            print('Error retrieving X-RateLimit: %s' % e.args)
+
         has_h5_file = False
 
         # Check for response
@@ -372,24 +384,25 @@ def seach_repos(start_date, end_date, tokens):
 
 if __name__ == '__main__':
     # Specify start and end search dates
-    start = datetime.date(2019, 5, 15)
+    start = datetime.date(2019, 1, 1)
     end = datetime.date(2019, 5, 25)
 
-    # Search repositories
-    # seach_repos(start, end)
+    periods = list(split_time_interval(start, end, 15))
 
-    # Retrieve token lists
-    token_lists = get_access_tokens()
+    for tf in periods:
+        print('Current time frame: %s - %s' % (tf[0], tf[1]))
+        # Retrieve token lists
+        token_lists = get_access_tokens()
 
-    time_frames = list(split_time_interval(start, end, len(token_lists)))
-    print(time_frames)
+        time_frames = list(split_time_interval(tf[0], tf[1], 3))
+        print(', '.join(str(f[0]) + ' - ' + str(f[1]) for f in time_frames))
 
-    processes = []
-    for index in range(len(token_lists)):
-        print('Start process %d' % (index + 1))
-        p = Process(target=seach_repos, args=(*time_frames[index], token_lists[index]))
-        processes.append(p)
-        p.start()
+        processes = []
+        for index in range(3):
+            print('Start process %d' % (index + 1))
+            p = Process(target=seach_repos, args=(*time_frames[index], token_lists[0]))
+            processes.append(p)
+            p.start()
 
-    for p in processes:
-        p.join()
+        for p in processes:
+            p.join()

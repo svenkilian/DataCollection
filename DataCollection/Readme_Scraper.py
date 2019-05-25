@@ -44,6 +44,9 @@ def get_readme(response):
         if response.status_code == 403:
             print('Access denied.')
 
+    # print('\n\nLimit: %d' % int(response.headers['X-RateLimit-Limit']))
+    # print('Remaining: %d' % int(response.headers['X-RateLimit-Remaining']))
+
     return text
 
 

@@ -113,7 +113,7 @@ if __name__ == "__main__":
     print('Number of entries in database: %d' % collection.collection_object.count_documents({}))
 
     # collection.delete_duplicates()
-    # collection.clear_all_entries()  # Use to clear all entries
+    collection.clear_all_entries()  # Use to clear all entries
     # collection.count_duplicates()
 
     n_docs = collection.collection_object.count_documents({})
