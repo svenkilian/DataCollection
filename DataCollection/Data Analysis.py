@@ -123,8 +123,8 @@ if __name__ == '__main__':
     dictionary = corpora.Dictionary.load('./data/dictionary.gensim')
 
     # Extract topics
-    NUM_TOPICS = 3  # Number of topics to extract
-    lda_model = gensim.models.ldamodel.LdaModel(corpus, num_topics=NUM_TOPICS, id2word=dictionary, passes=20,
+    NUM_TOPICS = 15  # Number of topics to extract
+    lda_model = gensim.models.ldamodel.LdaModel(corpus, num_topics=NUM_TOPICS, id2word=dictionary, passes=6,
                                                 alpha=[0.01] * NUM_TOPICS)
     lda_model.save('./data/model5.gensim')
 
