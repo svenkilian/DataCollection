@@ -1,7 +1,15 @@
+import gensim
+import nltk
+import spacy
+from spacy.lang.en import English
 from tqdm import tqdm
 
+from NLP_Functions import prepare_text_for_lda
+from gensim import corpora
+import pickle
 from config import ROOT_DIR
 import os
+import random
 import requests
 import pymongo
 import pandas as pd
@@ -11,16 +19,17 @@ from bson.json_util import dumps, loads
 # import matplotlib.pyplot as plt
 # import seaborn as sns
 
+
 from polyglot.text import Text
 import pycountry as country
 import seaborn as sns
 
 if __name__ == '__main__':
     # Retrieve database credentials
-    print(ROOT_DIR)
-    cred_path = os.path.join(ROOT_DIR, 'DataCollection/credentials/connection_creds.txt')
+    # print(ROOT_DIR)
+    # cred_path = os.path.join(ROOT_DIR, 'DataCollection/credentials/connection_creds.txt')
     path_to_data = os.path.join(ROOT_DIR, 'DataCollection/data/data.json')
-
+    #
     # with open(cred_path, 'r') as f:
     #     connection_string = f.read()
     #
@@ -69,15 +78,60 @@ if __name__ == '__main__':
         data_frame.at[index, 'language_readme'] = language_name
         data_frame.at[index, 'language_readme_code'] = language_code
 
-    print(data_frame[['readme_text', 'language_readme']])
+    print(data_frame[['readme_text', 'language_readme']][:10])
 
     data_frame['language_readme'].astype('category')
 
+    print('\n\nUnique languages:')
     print(data_frame['language_readme'].unique())
-    print(data_frame.groupby(['language_readme', 'language_readme_code']).size().reset_index(name='Count').sort_values(
-        'Count'))
 
-    data_frame.to_excel(r'Output.xlsx', engine='xlsxwriter')
+    # Language distribution
+    print('\n\n')
+    print(data_frame.groupby(['language_readme', 'language_readme_code']).size().reset_index(name='Count').sort_values(
+        'Count')[-10:])
+
+    # data_frame.to_excel(r'Output.xlsx', engine='xlsxwriter')
+
+    # Filter by English readmes
+    data_en = data_frame[data_frame['language_readme'] == 'English'][:]
+
+    spacy.load('en')  # Load English language corpus
+    # nltk.download('wordnet')  # Download wordnet
+    # nltk.download('stopwords')  # Download stopwords
+
+    # Initialize empty array of text data
+    text_data = []
+
+    # Fill text data array
+    for index, row in tqdm(data_en.iterrows(), total=data_en.shape[0]):
+        tokens = prepare_text_for_lda(row['readme_text'])
+        if random.random() >= 0:
+            # print(tokens)
+            text_data.append(tokens)
+
+    # Create dictionary from data
+    dictionary = corpora.Dictionary(text_data)
+    # Convert dictionary into bag of words corpus
+    corpus = [dictionary.doc2bow(text) for text in text_data]
+
+    # Save corpus and dictionary
+    pickle.dump(corpus, open('./data/corpus.pkl', 'wb'))
+    dictionary.save('./data/dictionary.gensim')
+
+    # Load corpus and dictionary
+    corpus = pickle.load(open('./data/corpus.pkl', 'rb'))
+    dictionary = corpora.Dictionary.load('./data/dictionary.gensim')
+
+    # Extract topics
+    NUM_TOPICS = 3  # Number of topics to extract
+    lda_model = gensim.models.ldamodel.LdaModel(corpus, num_topics=NUM_TOPICS, id2word=dictionary, passes=20,
+                                                alpha=[0.01] * NUM_TOPICS)
+    lda_model.save('./data/model5.gensim')
+
+    topics = lda_model.print_topics(num_words=15)
+
+    for topic in topics:
+        print(topic)
 
     # repo_count_per_year = data_frame.groupby(['year']).size().reset_index(name='counts of repos')
     # print(repo_count_per_year)

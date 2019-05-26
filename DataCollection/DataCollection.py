@@ -30,7 +30,7 @@ class DataCollection:
 
     def __repr__(self):
         """
-        Specify string representation of DataCollection instance
+        Specifies string representation of DataCollection instance
         :return: string representation of DataCollection instance
         """
 
@@ -39,7 +39,7 @@ class DataCollection:
 
     def delete_duplicates(self):
         """
-        Delete duplicates from collection based on repo_url
+        Deletes duplicates from collection based on repo_url
         :return:
         """
         cursor = self.collection_object.aggregate(
@@ -99,6 +99,10 @@ class DataCollection:
         return n_docs, n_structure, n_duplicates
 
     def clear_all_entries(self):
+        """
+        Clears all documents in cloud data base
+        :return:
+        """
         print('Number of entries before reset: %d' % self.collection_object.count_documents({}))
         self.collection_object.remove({})
         print('Number of entries after reset: %d' % self.collection_object.count_documents({}))
@@ -113,7 +117,7 @@ if __name__ == "__main__":
     print('Number of entries in database: %d' % collection.collection_object.count_documents({}))
 
     # collection.delete_duplicates()
-    collection.clear_all_entries()  # Use to clear all entries
+    # collection.clear_all_entries()  # Use to clear all entries
     # collection.count_duplicates()
 
     n_docs = collection.collection_object.count_documents({})

@@ -20,6 +20,11 @@ from Helper_Functions import print_progress
 
 
 def get_readme(response):
+    """
+    Get plain text from readme file
+    :param response: Res
+    :return: Plain text of readme file
+    """
     # Request successful
     if response.status_code == 200:
         # # Convert markdown to html
@@ -51,6 +56,11 @@ def get_readme(response):
 
 
 def set_full_name(repos):
+    """
+    -- Deprecated --
+    :param repos:
+    :return:
+    """
     # Start timer
     start_time = time.time()
 
@@ -73,6 +83,12 @@ def set_full_name(repos):
 
 
 def add_data_field(repos, access_path):
+    """
+    -- Deprecated --
+    :param repos:
+    :param access_path:
+    :return:
+    """
     url = 'https://api.github.com/repos/'
     # Start timer
     start_time = time.time()

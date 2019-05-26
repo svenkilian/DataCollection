@@ -88,21 +88,31 @@ def split_time_interval(start, end, intv):
     yield (start + (time_delta + datetime.timedelta(days=1)) * (intv - 1), end)
 
 
-def check_access_tokens():
-    token_lists = get_access_tokens()
-    all_tokens = [token for token_list in token_lists for token in token_list]
-
-    # print(all_tokens)
-    query_url = 'https://api.github.com/search/repositories?q=topic:ruby+topic:rails'
-    for index, token in enumerate(all_tokens):
-        headers = {'Authorization': 'token ' + token}
-        response = requests.get(query_url, headers=headers)
-        print('\n\nLimit: %d' % int(response.headers['X-RateLimit-Limit']))
-        print('Remaining: %d' % int(response.headers['X-RateLimit-Remaining']))
-        print('Token: %d,\n%s' % (index, token))
+def check_access_tokens(token_index, response):
+    """
+    Checks state of access tokens and prints state in console; Pauses calling thread if limit is sufficiently low
+    :param token_index: Index of token currently in use
+    :param response: Response object from last API request
+    :return:
+    """
+    try:
+        print('\n\nRemaining/Limit for token %d: %d/%d' % (token_index,
+                                                           int(response.headers['X-RateLimit-Remaining']),
+                                                           int(response.headers['X-RateLimit-Limit'])))
+        if int(response.headers['X-RateLimit-Remaining']) <= 3:
+            time.sleep(2)
+            print('Execution paused for 2 seconds.')
+        else:
+            pass
+    except KeyError as e:
+        print('\nError retrieving X-RateLimit: %s\n' % e.args)
 
 
 def get_access_tokens():
+    """
+    Retrieves GitHub Search API authentication tokens from files
+    :return: List of token lists
+    """
     # Specify path to credentials
     cred_path = os.path.join(ROOT_DIR, 'DataCollection/credentials')
     # List files with GitHub Access Tokens
@@ -120,3 +130,5 @@ def get_access_tokens():
         token_lists.append(access_tokens)
 
     return token_lists
+
+
