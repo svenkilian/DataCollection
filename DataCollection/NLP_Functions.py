@@ -64,7 +64,9 @@ def prepare_text_for_lda(text):
                        'val_loss', 'writeup', 'outlier', 'notebook', 'function', 'sample', 'trained', 'neumf',
                        'implementation', 'class', 'weight', 'output', 'download', 'model_data', 'algorithm', 'import',
                        'epoch', 'install', 'script', 'django', 'framwork', 'application', 'client', 'pytorch', 'file',
-                       '--model', 'paper', 'feature', 'number', 'python3', 'directory', 'folder', 'based', 'language'])
+                       '--model', 'paper', 'feature', 'number', 'python3', 'directory', 'folder', 'based', 'language',
+                       'accuracy', 'result', 'layer', 'framework', 'package', 'crispr', 'flask', 'server', 'params',
+                       'database', 'y_train', 'default', 'weight'])
 
     en_stop = set(stop_words)
     tokens = tokenize(text)

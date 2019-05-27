@@ -2,6 +2,8 @@ import datetime
 import json
 import sys
 import time
+from multiprocessing import current_process
+
 from config import ROOT_DIR
 import os
 import re
@@ -32,8 +34,8 @@ def print_progress(iteration, total, prefix='', prog='', round_avg=0, suffix='',
     seconds = round(pending_time % 60)
     suffix = '%d mins, %g secs remaining' % (minutes, seconds)
     sys.stdout.write(
-        '\r%s |%s| %s%s - Request %d of %d - %s - %s' % (
-            prefix, bar, percents, '%', iteration, total, prog, suffix))
+        '\r%s |%s| %s%s - Request %d of %d - %s - %s - %s' % (
+            prefix, bar, percents, '%', iteration, total, current_process().name, prog, suffix))
     if iteration == total:
         sys.stdout.write('\n')
     sys.stdout.flush()
@@ -105,7 +107,7 @@ def check_access_tokens(token_index, response):
         else:
             pass
     except KeyError as e:
-        print('\nError retrieving X-RateLimit: %s\n' % e.args)
+        print('\nError retrieving X-RateLimit for token %d: %s\n' % (token_index, e.args))
 
 
 def get_access_tokens():

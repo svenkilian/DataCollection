@@ -190,7 +190,7 @@ def seach_repos(start_date, end_date, tokens):
                 days=floor(((1000 / repo_count) * period_length.days * slack)))  # Calculate delta for period length
             last_date = last_date - delta_period_length  # Calculate modified last_date
             period_length -= delta_period_length  # Modify period_length for search
-            print('Change of period length to: %d' % period_length.days)
+            print('\nChange of period length to: %d' % period_length.days)
             continue
         else:
             pass
@@ -208,7 +208,7 @@ def seach_repos(start_date, end_date, tokens):
 
         # Print search progress as progress bar
         print_progress(page_counter, ceil(n_results / 100.0),
-                       prog='Last request (first of new): %g' % round(time_diff, 2),
+                       prog='Last request: %g' % round(time_diff, 2),
                        time_lapsed=end_time - start_time)
 
         # print('\n\nTime for request: %g' % (end_time - start_time))
@@ -375,21 +375,23 @@ def seach_repos(start_date, end_date, tokens):
 
 if __name__ == '__main__':
     # Specify start and end search dates
-    start = datetime.date(2018, 12, 1)
-    end = datetime.date(2018, 12, 31)
+    start = datetime.date(2015, 3, 1)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
+    end = datetime.date(2019, 5, 28)
 
-    periods = list(split_time_interval(start, end, 15))
+    periods = list(split_time_interval(start, end, 1))
 
     for tf in periods:
-        print('Current time frame: %s - %s' % (tf[0], tf[1]))
+        print('\nCurrent time frame: %s - %s' % (tf[0], tf[1]))
         # Retrieve token lists
         token_lists = get_access_tokens()
 
-        time_frames = list(split_time_interval(tf[0], tf[1], 2))
+        time_frames = list(split_time_interval(tf[0], tf[1], 1))
+        print('Processing time periods in parallel:')
         print(', '.join(str(f[0]) + ' - ' + str(f[1]) for f in time_frames))
+        print()
 
         processes = []
-        for index in range(2):
+        for index in range(1 ):
             print('Start process %d' % (index + 1))
             p = Process(target=seach_repos, args=(*time_frames[index], token_lists[0]))
             processes.append(p)

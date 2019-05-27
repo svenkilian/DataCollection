@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
     # Make DataFrame from json
     data_frame = pd.DataFrame(data)
-    print(data_frame[['repo_full_name', 'readme_text']].iloc[0:10])
+    print(data_frame[['repo_full_name', 'readme_text']].iloc[20:30])
 
     access_path = os.path.join(ROOT_DIR, 'DataCollection/credentials/GitHub_Access_Token.txt')
 
@@ -78,7 +78,7 @@ if __name__ == '__main__':
         data_frame.at[index, 'language_readme'] = language_name
         data_frame.at[index, 'language_readme_code'] = language_code
 
-    print(data_frame[['readme_text', 'language_readme']][:10])
+    print(data_frame[data_frame['language_readme'] != 'English'].loc[:, ['readme_text', 'language_readme']])
 
     data_frame['language_readme'].astype('category')
 
@@ -87,51 +87,52 @@ if __name__ == '__main__':
 
     # Language distribution
     print('\n\n')
-    print(data_frame.groupby(['language_readme', 'language_readme_code']).size().reset_index(name='Count').sort_values(
+    print(data_frame.groupby(['language_readme']).size().reset_index(name='Count').sort_values(
         'Count')[-10:])
-
-    # data_frame.to_excel(r'Output.xlsx', engine='xlsxwriter')
 
     # Filter by English readmes
     data_en = data_frame[data_frame['language_readme'] == 'English'][:]
+
+    data_en.to_excel(r'Output.xlsx', engine='xlsxwriter')
 
     spacy.load('en')  # Load English language corpus
     # nltk.download('wordnet')  # Download wordnet
     # nltk.download('stopwords')  # Download stopwords
 
-    # Initialize empty array of text data
-    text_data = []
-
-    # Fill text data array
-    for index, row in tqdm(data_en.iterrows(), total=data_en.shape[0]):
-        tokens = prepare_text_for_lda(row['readme_text'])
-        if random.random() >= 0:
-            # print(tokens)
-            text_data.append(tokens)
-
-    # Create dictionary from data
-    dictionary = corpora.Dictionary(text_data)
-    # Convert dictionary into bag of words corpus
-    corpus = [dictionary.doc2bow(text) for text in text_data]
-
-    # Save corpus and dictionary
-    pickle.dump(corpus, open('./data/corpus.pkl', 'wb'))
-    dictionary.save('./data/dictionary.gensim')
+    # # Initialize empty array of text data
+    # text_data = []
+    #
+    # # Fill text data array
+    # for index, row in tqdm(data_en.iterrows(), total=data_en.shape[0]):
+    #     tokens = prepare_text_for_lda(row['readme_text'])
+    #     if random.random() >= 0:
+    #         # print(tokens)
+    #         text_data.append(tokens)
+    #
+    # # Create dictionary from data
+    # dictionary = corpora.Dictionary(text_data)
+    # # Convert dictionary into bag of words corpus
+    # corpus = [dictionary.doc2bow(text) for text in text_data]
+    #
+    # # Save corpus and dictionary
+    # pickle.dump(corpus, open('./data/corpus.pkl', 'wb'))
+    # dictionary.save('./data/dictionary.gensim')
 
     # Load corpus and dictionary
     corpus = pickle.load(open('./data/corpus.pkl', 'rb'))
     dictionary = corpora.Dictionary.load('./data/dictionary.gensim')
 
     # Extract topics
-    NUM_TOPICS = 15  # Number of topics to extract
-    lda_model = gensim.models.ldamodel.LdaModel(corpus, num_topics=NUM_TOPICS, id2word=dictionary, passes=6,
+    NUM_TOPICS = 10  # Number of topics to extract
+    lda_model = gensim.models.ldamodel.LdaModel(corpus, num_topics=NUM_TOPICS, id2word=dictionary, passes=10,
                                                 alpha=[0.01] * NUM_TOPICS)
     lda_model.save('./data/model5.gensim')
 
-    topics = lda_model.print_topics(num_words=15)
+    topics = lda_model.print_topics(num_words=7)
 
-    for topic in topics:
-        print(topic)
+    print('\n' * 5)
+    for i, topic in enumerate(topics):
+        print('Topic %d: %s' % (i, topic))
 
     # repo_count_per_year = data_frame.groupby(['year']).size().reset_index(name='counts of repos')
     # print(repo_count_per_year)
