@@ -101,8 +101,8 @@ def check_access_tokens(token_index, response):
         print('\n\nRemaining/Limit for token %d: %d/%d' % (token_index,
                                                            int(response.headers['X-RateLimit-Remaining']),
                                                            int(response.headers['X-RateLimit-Limit'])))
-        if int(response.headers['X-RateLimit-Remaining']) <= 3:
-            time.sleep(2)
+        if int(response.headers['X-RateLimit-Remaining']) <= 6:
+            time.sleep(15)
             print('Execution paused for 2 seconds.')
         else:
             pass

@@ -1,5 +1,6 @@
 # This class implements database access to GitHub's REST-API for search queries
 import re
+import sys
 import threading
 
 from config import ROOT_DIR
@@ -61,7 +62,6 @@ def seach_repos(start_date, end_date, tokens):
     global token_counter, rotation_cycle, page_counter, n_results, start_time, repo_list
     # JOB: Specify search terms, time period to search, resources to search
     # Configure number and size of requests (responses are paginated)
-    n_search_requests = 10
     n_results_per_page = 100
 
     # Initialize repository list
@@ -81,7 +81,7 @@ def seach_repos(start_date, end_date, tokens):
     # search_from_date = datetime.date(2019, 5, 22)  # Keras release date: 2015-03-27
     search_from_date = start_date
     search_end_date = end_date
-    query_search_from = 'created:>=' + search_from_date.isoformat()
+    # query_search_from = 'created:>=' + search_from_date.isoformat()
     query_sort_by = 'score'  # updated, stars, forks, default: score
     # query = query_search_terms + '+' + query_stop_words + '+' + query_search_locations + '+language:python+' + \
     #         query_search_from + '&sort=' + query_sort_by + '&order=desc'
@@ -90,13 +90,6 @@ def seach_repos(start_date, end_date, tokens):
     query = query_search_terms + '+' + query_search_locations + '+language:python+' + \
             time_frame + '&sort=' + query_sort_by + '&order=desc'
 
-    # JOB: Get authentication tokens from file
-    # Retrieve local access token for GitHub API access
-    # with open(os.path.join(ROOT_DIR, 'DataCollection/credentials/GitHub_Access_Token.txt'), 'r') as f:
-    #     access_tokens = f.readlines()
-    # # List tokens
-    # access_tokens = [token.rstrip('\n') for token in access_tokens]
-    # Determine length of rotation cycle
     rotation_cycle = len(tokens)
 
     # print('Total number of requests: %d' % n_search_requests)
@@ -125,12 +118,16 @@ def seach_repos(start_date, end_date, tokens):
         n_results = json.loads(response.text).get('total_count')  # Query total count from response
         print('\n\nTotal number of repositories found: %d\n' % n_results)
         print('Initial request successful')
+    else:
+        print('Initial request failed. Termination processes.')
+        sys.exit(0)  # Exit program
+
     end_time = time.time()  # Stop timer
     time_diff = end_time - begin_query  # Calculate duration of query response
 
     # Calculate total time period to search
-    date_tomorrow = datetime.date.today() + datetime.timedelta(days=1)  # Search end data (= tomorrow's date)
-    date_today = datetime.date.today()  # Today's date
+    # date_tomorrow = datetime.date.today() + datetime.timedelta(days=1)  # Search end data (= tomorrow's date)
+    # date_today = datetime.date.today()  # Today's date
     # time_delta = (date_tomorrow - search_from_date).days  # Search time period length in days
     time_delta = (search_end_date - search_from_date).days + 1  # Search time period length in days
 
@@ -375,8 +372,9 @@ def seach_repos(start_date, end_date, tokens):
 
 if __name__ == '__main__':
     # Specify start and end search dates
-    start = datetime.date(2015, 3, 1)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
-    end = datetime.date(2019, 5, 28)
+    start = datetime.date(2018, 11, 24)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
+    end = datetime.date(2018, 11, 30)
+    n_process = 4  # Specify number of parallel processes to be used
 
     periods = list(split_time_interval(start, end, 1))
 
@@ -385,13 +383,13 @@ if __name__ == '__main__':
         # Retrieve token lists
         token_lists = get_access_tokens()
 
-        time_frames = list(split_time_interval(tf[0], tf[1], 1))
+        time_frames = list(split_time_interval(tf[0], tf[1], n_process))
         print('Processing time periods in parallel:')
         print(', '.join(str(f[0]) + ' - ' + str(f[1]) for f in time_frames))
         print()
 
         processes = []
-        for index in range(1 ):
+        for index in range(n_process):
             print('Start process %d' % (index + 1))
             p = Process(target=seach_repos, args=(*time_frames[index], token_lists[0]))
             processes.append(p)
