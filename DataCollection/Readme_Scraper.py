@@ -13,9 +13,8 @@ from bson import ObjectId
 from bson.json_util import dumps
 from markdown import markdown
 from pandas import read_json
-import threading
-from docutils.core import publish_parts
-
+import urllib3
+import re
 from Helper_Functions import print_progress
 
 
@@ -23,27 +22,41 @@ def get_readme(response):
     """
     Get plain text from readme file
     :param response: Res
-    :return: Plain text of readme file
+    :return: Plain plain_text of readme file
     """
+    plain_text = None
+    link_list = []
+    reference_list = []
     # Request successful
     if response.status_code == 200:
-        # # Convert markdown to html
-        # text = markdown(response.text)
-        # Extract text and remove all line breaks
-        text = ''.join(BeautifulSoup(response.text, features='lxml').find_all(text=True))
-        text = text.replace('\n', ' ').replace('\t', ' ').replace('\r', '')
 
-        # Set text to null if empty string
-        if text == '':
-            text = None
+        # Extract plain_text and remove all line breaks
+        soup = BeautifulSoup(response.text, features='lxml')
+
+        # Find all arxiv links and append to reference_list
+        for reference in soup.findAll('a', attrs={'href': re.compile('(arxiv|ieee.org)')}):
+            reference_list.append(reference.get('href'))
+
+        # Find all links and append to link_list
+        for link in soup.findAll('a', attrs={'href': re.compile('^http://')}):
+            link_list.append(link.get('href'))
+
+        # Remove references from link_list
+        link_list = list(set(link_list) - set(reference_list))
+
+        plain_text = ''.join(soup.find_all(text=True))
+        plain_text = plain_text.replace('\n', ' ').replace('\t', ' ').replace('\r', '')
+
+        # Set plain_text to null if empty string
+        if plain_text == '':
+            plain_text = None
 
     # Request unsuccessful
     elif response.status_code == 404:
-        text = None
-        # print(' - Repository without readme found for: %s\n%s' % (response.text, response.request.url))
+        pass
+        # print(' - Repository without readme found for: %s\n%s' % (response.plain_text, response.request.url))
 
     else:
-        text = None
         print('Unknown error occurred while parsing readme file: %d' % response.status_code)
         print(response.reason)
         if response.status_code == 403:
@@ -52,7 +65,7 @@ def get_readme(response):
     # print('\n\nLimit: %d' % int(response.headers['X-RateLimit-Limit']))
     # print('Remaining: %d' % int(response.headers['X-RateLimit-Remaining']))
 
-    return text
+    return plain_text, link_list, reference_list
 
 
 def set_full_name(repos):

@@ -6,7 +6,6 @@ from rdflib import Graph, BNode, ConjunctiveGraph, URIRef, Literal, Namespace, R
 from tqdm import tqdm
 import pandas as pd
 from tabulate import tabulate
-from IPython.display import display, HTML
 
 
 class Ontology_Conversion:
@@ -44,14 +43,14 @@ if __name__ == '__main__':
     # Print repositories with h5 file
     # print(df_github[df_github['h5'].notna()][['h5', 'h5-nr']])
 
+    # print selection of repositories
     print(tabulate(df_github[20:40], headers='keys', tablefmt='psql', showindex=True))
 
-    df_github[20:40].to_html('temp.html', col_space=50, na_rep='NA')
+    # Export to html file
 
-    display(HTML(df_github[20:40].to_html('temp.html', col_space=50, na_rep='NA')))
+    df_github[20:40].to_html(os.path.join(ROOT_DIR, 'DataCollection/data/Table.html'), col_space=50, na_rep='NA')
 
     sys.exit()  # Comment
-
 
     # General Information about Ontology
     tmp = URIRef('https://w3id.org/nno/data')

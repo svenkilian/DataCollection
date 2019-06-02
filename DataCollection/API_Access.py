@@ -279,7 +279,7 @@ def seach_repos(start_date, end_date, tokens):
 
         # JOB: Get Readme text and language
         # Hand response to markdown parser
-        readme_text = get_readme(response)
+        readme_text, link_list, reference_list = get_readme(response)
         has_readme = True if readme_text is not None else False
         readme_language = identify_language(readme_text)
 
@@ -322,7 +322,8 @@ def seach_repos(start_date, end_date, tokens):
                     h5_files_links.append(file['html_url'])
 
         else:
-            raise Exception('Could not check for h5 files')
+            # raise Exception('Could not check for h5 files')
+            pass
 
         # JOB: Save meta data to item dict
         # Specify repo meta data to be extracted from API response
@@ -352,6 +353,8 @@ def seach_repos(start_date, end_date, tokens):
                 'repo_tags': tags_list,
                 'has_h5': has_h5_file,
                 'h5_files_links': h5_files_links,
+                'see_also_links': link_list,
+                'reference_list': reference_list,
                 }
 
         # # Add architecture attribute
@@ -386,8 +389,8 @@ def seach_repos(start_date, end_date, tokens):
 
 if __name__ == '__main__':
     # Specify start and end search dates
-    start = datetime.date(2019, 5, 31)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
-    end = datetime.date(2019, 6, 2)
+    start = datetime.date(2019, 5, 20)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
+    end = datetime.date(2019, 5, 31)
     n_days = (end - start).days + 1
     n_macro_periods = 1
     print('Searching for repositories between %s and %s\n'
