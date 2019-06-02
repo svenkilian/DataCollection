@@ -65,7 +65,7 @@ def identify_language(text):
     return language_name
 
 
-def split_time_interval(start, end, intv):
+def split_time_interval(start, end, intv, n_days):
     """
     Split time interval into chunks according to number of sub-intervals specified as intv
     Yields iterable of start/end tuples
@@ -74,20 +74,23 @@ def split_time_interval(start, end, intv):
     :param intv: Number of chunks to divide time interval into
     """
 
-    if intv == 1:
-        time_delta_days = (end - start).days + 1
-        time_delta = end - start
+    if n_days > 1:
+        n_days_micro = floor(n_days / intv)  # Micro search time period length in days
+        time_delta = datetime.timedelta(days=n_days_micro - 1)
+        # Yield start and end date for time period
+        for i in range(intv - 1):
+            yield (start + (time_delta + datetime.timedelta(days=1)) * i,
+                   start + time_delta + (time_delta + datetime.timedelta(days=1)) * i)
+        # Yield last time period
+        yield (start + (time_delta + datetime.timedelta(days=1)) * (intv - 1), end)
+
     else:
-        time_delta_days = ((end - start).days + 1) / intv  # Search time period length in days
-        time_delta = datetime.timedelta(floor(time_delta_days) - 1)
+        n_days_micro = n_days
+        time_delta = end - start
+        yield (start, end)
 
-    print('Time delta: %s:' % time_delta)
-    print('Days per token list: %d' % time_delta_days)
-
-    for i in range(intv - 1):
-        yield (start + (time_delta + datetime.timedelta(days=1)) * i,
-               start + (time_delta + datetime.timedelta(days=1)) * i + time_delta)
-    yield (start + (time_delta + datetime.timedelta(days=1)) * (intv - 1), end)
+    print('Time delta per time frame: %s:' % time_delta)
+    print('Days per time frame: %d' % n_days_micro)
 
 
 def check_access_tokens(token_index, response):
@@ -132,5 +135,3 @@ def get_access_tokens():
         token_lists.append(access_tokens)
 
     return token_lists
-
-

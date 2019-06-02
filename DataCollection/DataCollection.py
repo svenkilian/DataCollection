@@ -10,15 +10,15 @@ class DataCollection:
     Implements a MongoDB Atlas Database Collection
     """
 
-    def __init__(self, repo_name):
+    def __init__(self, collection_name):
         """
         Constructor for a Collection object holding the reference to MongoDB collection object
-        :param repo_name: name of repository within database
+        :param repo_name: name of collection within database
         """
 
         # Establish database connection
         self.cred_path = os.path.join(ROOT_DIR,
-                                      'DataCollection/credentials/connection_creds.txt')  # Path to database login credentials
+                                      'DataCollection/credentials/connection_creds.txt')
 
         # Read connection string from text file
         with open(self.cred_path, 'r') as f:
@@ -26,7 +26,7 @@ class DataCollection:
 
         # Instantiate MongoClient
         self.client = pymongo.MongoClient(connection_string)
-        self.collection_object = self.client.GitHub[repo_name]
+        self.collection_object = self.client.GitHub[collection_name]
 
     def __repr__(self):
         """
@@ -109,7 +109,7 @@ class DataCollection:
 
 
 if __name__ == "__main__":
-    collection = DataCollection('Repos_Exp')
+    collection = DataCollection('Exper')
 
     # Print database server info
     print(collection)
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     print('Number of entries in database: %d' % collection.collection_object.count_documents({}))
 
     # collection.delete_duplicates()
-    # collection.clear_all_entries()  # Use to clear all entries
+    collection.clear_all_entries()  # Use to clear all entries
     # collection.count_duplicates()
 
     n_docs = collection.collection_object.count_documents({})

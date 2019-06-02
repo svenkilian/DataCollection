@@ -13,7 +13,7 @@ import requests
 from Helper_Functions import print_progress, split_time_interval, identify_language, get_access_tokens, \
     check_access_tokens
 from Readme_Scraper import get_readme
-import DataCollection
+from DataCollection import DataCollection
 from multiprocessing import Process
 
 
@@ -59,6 +59,13 @@ def iterate_pages(resp, tokens):
 
 
 def seach_repos(start_date, end_date, tokens):
+    """
+    Find repositories between start_date and end_date mathing the specified search word in the specified locations
+    :param start_date: Start date of search
+    :param end_date: End date of search
+    :param tokens: Authentication tokens to use
+    :return:
+    """
     global token_counter, rotation_cycle, page_counter, n_results, start_time, repo_list
     # JOB: Specify search terms, time period to search, resources to search
     # Configure number and size of requests (responses are paginated)
@@ -69,43 +76,46 @@ def seach_repos(start_date, end_date, tokens):
 
     # Search query string, see https://developer.github.com/v3/search/#search-repositories for documentation
     # Example search: https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:GilbertoEspinoza/emojify
-    # search_terms = ['CNN', 'cnn', 'keras', 'Keras', '"image+processing"', '"character+recognition"', 'forecasting']
     search_terms = ['keras']
     query_search_terms = '+'.join(search_terms)
+
     # Specify words that are excluded from search
     # stop_words = ['tutorial']
     # query_stop_words = 'NOT+' + '+NOT+'.join(stop_words)
 
     search_locations = ['title', 'readme', 'description']  # Specify locations to search
     query_search_locations = '+'.join(['in:' + location for location in search_locations])
-    # search_from_date = datetime.date(2019, 5, 22)  # Keras release date: 2015-03-27
+
+    # Set search time interval
+    # Memo: Keras release date: 2015-03-27
     search_from_date = start_date
     search_end_date = end_date
-    # query_search_from = 'created:>=' + search_from_date.isoformat()
+
+    # Specify sorting of results - Irrelevant for comprehensive search
     query_sort_by = 'score'  # updated, stars, forks, default: score
     # query = query_search_terms + '+' + query_stop_words + '+' + query_search_locations + '+language:python+' + \
     #         query_search_from + '&sort=' + query_sort_by + '&order=desc'
 
+    # Specify search string for search time frame
     time_frame = 'created:' + search_from_date.isoformat() + '..' + search_end_date.isoformat()
+
+    # Create full query
     query = query_search_terms + '+' + query_search_locations + '+language:python+' + \
             time_frame + '&sort=' + query_sort_by + '&order=desc'
 
+    # Set rotation cycle to number of tokens being rotated
     rotation_cycle = len(tokens)
-
-    # print('Total number of requests: %d' % n_search_requests)
-    # print('Number of items per page: %d \n\n' % n_results_per_page)
 
     # JOB: Create initial query and send request
     # Create initial url from query
     url = 'https://api.github.com/search/repositories?page=1&per_page=' + str(n_results_per_page) + '&q=' + query
-    # print(url)
 
     # Set results number and token counter to zero
     n_results = 0
     page_counter = 0
     token_counter = 0
 
-    # Specify header with authentication for first query
+    # Specify header with authentication for first query using first token in list
     headers = {'Authorization': 'token ' + tokens[0]}
 
     # Start timer for search request and submit API request
@@ -119,25 +129,20 @@ def seach_repos(start_date, end_date, tokens):
         print('\n\nTotal number of repositories found: %d\n' % n_results)
         print('Initial request successful')
     else:
-        print('Initial request failed. Termination processes.')
+        # In case of unsuccessful request, terminate program
+        print('Initial request failed. Terminating processes.')
         sys.exit(0)  # Exit program
 
     end_time = time.time()  # Stop timer
     time_diff = end_time - begin_query  # Calculate duration of query response
 
     # Calculate total time period to search
-    # date_tomorrow = datetime.date.today() + datetime.timedelta(days=1)  # Search end data (= tomorrow's date)
-    # date_today = datetime.date.today()  # Today's date
-    # time_delta = (date_tomorrow - search_from_date).days  # Search time period length in days
     time_delta = (search_end_date - search_from_date).days + 1  # Search time period length in days
 
     # Calculate search period to use for iteration of results
     avg_daily_results = n_results / time_delta  # Average number of search results per day
 
     avg_period = 1000 / avg_daily_results  # Average period length yielding 1000 search results (API limit)
-
-    # print('\nAverage daily results: ' + str(avg_daily_results))
-    # print('Average period: ' + str(avg_period))
 
     # Set length for search period to average period yielding 1000 results
     period_length = datetime.timedelta(days=avg_period)
@@ -146,7 +151,7 @@ def seach_repos(start_date, end_date, tokens):
     # Specify last date for current search iteration
     last_date = search_from_date + period_length
 
-    # If last date is in the future, set last_data to date_tomorrow
+    # If last date is in the future, set last_date to end_date
     if last_date > search_end_date:
         last_date = search_end_date
 
@@ -161,10 +166,6 @@ def seach_repos(start_date, end_date, tokens):
         # Specify time frame to search
         time_frame = 'created:' + search_from_date.isoformat() + '..' + last_date.isoformat()
         # print('Time frame to search: %s' % time_frame)
-
-        # Create search query with stop words
-        # query = query_search_terms + '+' + query_stop_words + '+' + query_search_locations + '+language:python+' + \
-        #         time_frame + '&sort=' + query_sort_by + '&order=desc'
 
         # Create search query
         query = query_search_terms + '+' + query_search_locations + '+language:python+' + \
@@ -183,10 +184,9 @@ def seach_repos(start_date, end_date, tokens):
         # If number of found repositories exceeds limit of 1000 search results, reduce period_length
         slack = 0.8  # Factor by which to reduce period length as a security margin
         if repo_count > 1000:
-            delta_period_length = datetime.timedelta(
+            period_length = datetime.timedelta(
                 days=floor(((1000 / repo_count) * period_length.days * slack)))  # Calculate delta for period length
-            last_date = last_date - delta_period_length  # Calculate modified last_date
-            period_length -= delta_period_length  # Modify period_length for search
+            last_date = search_from_date + period_length  # Calculate modified last_date
             print('\nChange of period length to: %d' % period_length.days)
             continue
         else:
@@ -202,6 +202,7 @@ def seach_repos(start_date, end_date, tokens):
         # Increase page counter
         page_counter += 1
         end_time = time.time()
+        time_diff = end_time - begin_query
 
         # Print search progress as progress bar
         print_progress(page_counter, ceil(n_results / 100.0),
@@ -222,7 +223,8 @@ def seach_repos(start_date, end_date, tokens):
             # If request unsuccessful, print error message
             print('Request failed. Error code: %d - %s' % (response.status_code, response.reason))
 
-        # Set search date window to next time frame
+        # JOB: Set search date window to next time frame
+        # Set search from date to one day after previous last_date
         search_from_date = last_date + datetime.timedelta(days=1)
 
         # JOB: Check if end of search time frame is reached
@@ -239,6 +241,7 @@ def seach_repos(start_date, end_date, tokens):
 
     # Print number of saved repositories
     repo_count = len(repo_list)
+    print('Finished collecting search results.')
     print('\n\nNumber of saved repositories: %d' % repo_count)
     print('\nExtracting meta data from found repositories:')
 
@@ -250,6 +253,10 @@ def seach_repos(start_date, end_date, tokens):
         # Seach for 'save' in .py file
         # query_url = 'https://api.github.com/search/code?q=save+extension:py+repo:' + repo['full_name']
 
+        # JOB: Get description language
+        description_language = identify_language(repo['description'])
+
+        # JOB: Extract plain text from readme files
         # Determine current token index and increment counter
         token_index = token_counter % rotation_cycle
         token_counter += 1
@@ -269,9 +276,6 @@ def seach_repos(start_date, end_date, tokens):
 
         # Query API for readme file
         response = requests.get(readme_path, headers=headers)
-
-        # JOB: Get description language
-        description_language = identify_language(repo['description'])
 
         # JOB: Get Readme text and language
         # Hand response to markdown parser
@@ -304,12 +308,21 @@ def seach_repos(start_date, end_date, tokens):
 
         check_access_tokens(token_index, response)
 
-        has_h5_file = False
+        # Initialize empty list of links
+        h5_files_links = []
 
         # Check for response
         if response.status_code == 200:
             # If request to API successful
             has_h5_file = json.loads(response.text).get('total_count') > 0  # '.h5' or '.hdf5' file found in repo
+
+            if has_h5_file:
+                h5_files = json.loads(response.text).get('items')
+                for file in h5_files:
+                    h5_files_links.append(file['html_url'])
+
+        else:
+            raise Exception('Could not check for h5 files')
 
         # JOB: Save meta data to item dict
         # Specify repo meta data to be extracted from API response
@@ -337,7 +350,8 @@ def seach_repos(start_date, end_date, tokens):
                 'has_readme': has_readme,
                 'readme_language': readme_language,
                 'repo_tags': tags_list,
-                'has_h5': has_h5_file
+                'has_h5': has_h5_file,
+                'h5_files_links': h5_files_links,
                 }
 
         # # Add architecture attribute
@@ -359,7 +373,7 @@ def seach_repos(start_date, end_date, tokens):
                        time_lapsed=end_time - start_time)
 
     # Create MongoDB collection instance
-    collection = DataCollection.DataCollection('Repos_Exp')
+    collection = DataCollection('Exper')
     # print(collection)
 
     # Insert data into database if list is not empty
@@ -372,23 +386,48 @@ def seach_repos(start_date, end_date, tokens):
 
 if __name__ == '__main__':
     # Specify start and end search dates
-    start = datetime.date(2018, 11, 24)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
-    end = datetime.date(2018, 11, 30)
-    n_process = 4  # Specify number of parallel processes to be used
+    start = datetime.date(2019, 5, 31)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
+    end = datetime.date(2019, 6, 2)
+    n_days = (end - start).days + 1
+    n_macro_periods = 1
+    print('Searching for repositories between %s and %s\n'
+          'Partionioning into %d macro periods\n\n' % (start.isoformat(), end.isoformat(), n_macro_periods))
 
-    periods = list(split_time_interval(start, end, 1))
+    if n_macro_periods > n_days:
+        # If trying to split up time frame into more time periods than days, limit to n_days
+        n_macro_periods = n_days
+        print('Macro time periods: %d' % n_macro_periods)
+
+    # Get macro time periods
+    periods = list(split_time_interval(start, end, n_macro_periods, n_days))
+
+    print('Macro periods:')
+    print(', '.join(str(f[0]) + ' - ' + str(f[1]) for f in periods))
+    print()
 
     for tf in periods:
+        n_process = 4  # Specify number of parallel processes to be used
         print('\nCurrent time frame: %s - %s' % (tf[0], tf[1]))
         # Retrieve token lists
         token_lists = get_access_tokens()
 
-        time_frames = list(split_time_interval(tf[0], tf[1], n_process))
+        # Get list of time frames per period
+
+        # Number of days in sub period
+        n_days_micro = (tf[1] - tf[0]).days + 1
+
+        if n_days_micro < n_process:
+            # Limit number of processes
+            n_process = n_days_micro
+
+        time_frames = list(split_time_interval(tf[0], tf[1], n_process, n_days_micro))
         print('Processing time periods in parallel:')
         print(', '.join(str(f[0]) + ' - ' + str(f[1]) for f in time_frames))
         print()
 
+        # Define empty list for processes
         processes = []
+        # JOB: Initiate and start processes
         for index in range(n_process):
             print('Start process %d' % (index + 1))
             p = Process(target=seach_repos, args=(*time_frames[index], token_lists[0]))
@@ -396,4 +435,5 @@ if __name__ == '__main__':
             p.start()
 
         for p in processes:
+            # Join processes with main process
             p.join()
