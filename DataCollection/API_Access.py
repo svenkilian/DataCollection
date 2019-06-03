@@ -1,25 +1,17 @@
-# This class implements database access to GitHub's REST-API for search queries
-import re
-import sys
-import threading
-
-from config import ROOT_DIR
-import os
-import datetime
+# This module implements database access to GitHub's REST-API for search queries
 import json
-import time
-from math import ceil, floor
-import requests
-from Helper_Functions import print_progress, split_time_interval, identify_language, get_access_tokens, \
-    check_access_tokens
-from Readme_Scraper import get_readme
-from DataCollection import DataCollection
 from multiprocessing import Process
+
+import requests
+
+from DataCollection import DataCollection
+from Helper_Functions import *
 
 
 def iterate_pages(resp, tokens):
     """
     Iterates over all pages following the 'next' links of ab API response
+
     :param resp: response of previous request
     """
     global token_counter, rotation_cycle, page_counter, n_results, start_time, repo_list
@@ -60,7 +52,8 @@ def iterate_pages(resp, tokens):
 
 def seach_repos(start_date, end_date, tokens):
     """
-    Find repositories between start_date and end_date mathing the specified search word in the specified locations
+    Finds repositories between start_date and end_date mathing the specified search word in the specified locations.
+
     :param start_date: Start date of search
     :param end_date: End date of search
     :param tokens: Authentication tokens to use
@@ -388,6 +381,10 @@ def seach_repos(start_date, end_date, tokens):
 
 
 if __name__ == '__main__':
+    """
+    Main method to be called when API_Access module is run.
+    """
+
     # Specify start and end search dates
     start = datetime.date(2019, 5, 20)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
     end = datetime.date(2019, 5, 31)

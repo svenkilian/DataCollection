@@ -1,13 +1,11 @@
 from config import ROOT_DIR
 import os
 import pymongo
-from bson import json_util
-import json
 
 
 class DataCollection:
     """
-    Implements a MongoDB Atlas Database Collection
+    Implements a MongoDB Atlas Database Collection wrapper class
     """
 
     def __init__(self, collection_name):
@@ -127,5 +125,3 @@ if __name__ == "__main__":
     print('Number of entries in database: %d' % n_docs)
     print('Number of entries with structure information: %d' % n_structure)
     print('Number of entries without structure information: %d \n' % n_no_structure)
-
-

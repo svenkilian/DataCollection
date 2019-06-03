@@ -1,35 +1,55 @@
-import gensim
-import nltk
-import spacy
-from spacy.lang.en import English
-from tqdm import tqdm
+# Standalone executable module implementing experimental NLP techniques to textual information.
 
-from NLP_Functions import prepare_text_for_lda
-from gensim import corpora
-import pickle
-from config import ROOT_DIR
-import os
-import random
-import requests
-import pymongo
-import pandas as pd
-import numpy as np
 import json
-from bson.json_util import dumps, loads
-# import matplotlib.pyplot as plt
-# import seaborn as sns
-
-
-from polyglot.text import Text
+import os
+import pickle
+import gensim
+import pandas as pd
 import pycountry as country
-import seaborn as sns
+import pymongo
+import spacy
+from gensim import corpora
+from polyglot.text import Text
+from tqdm import tqdm
+from config import ROOT_DIR
+
+
+def get_stats(data_frame):
+    """
+    Prints basic statistics of repositories in data frame to console.
+
+    :param data_frame: Data frame object to analyse
+    :return:
+    """
+
+    repo_count_per_year = data_frame.groupby(['year']).size().reset_index(name='counts of repos')
+    print(repo_count_per_year)
+
+    has_wiki_count = data_frame.groupby(['has_wiki']).size().reset_index(name='counts of repos')
+    print(has_wiki_count)
+
+    has_homepage_count = data_frame.iloc[:, 3].isna().sum()
+    print(has_homepage_count)
+
+    owner_count = data_frame.groupby(['repo_owner']).size().reset_index(name='counts of repos').sort_values(
+        by=['counts of repos'], ascending=False)
+    print(owner_count)
+
+    print(owner_count[owner_count['counts of repos'] > 1].sum())
+
 
 if __name__ == '__main__':
-    # Retrieve database credentials
-    # print(ROOT_DIR)
+    """
+    Main method to be executed when module is run.
+    """
+
+    # # Retrieve database credentials
     # cred_path = os.path.join(ROOT_DIR, 'DataCollection/credentials/connection_creds.txt')
+
+    # Specify path to saved repository data
     path_to_data = os.path.join(ROOT_DIR, 'DataCollection/data/data.json')
-    #
+
+    # # JOB: Fetch data from MongoDB Atlas cloud database
     # with open(cred_path, 'r') as f:
     #     connection_string = f.read()
     #
@@ -38,27 +58,26 @@ if __name__ == '__main__':
     # collection = client.GitHub.Repos_Exp
     # print(client.server_info())
     #
-    # # Save database query result to json
-    # data = dumps(collection.find({}))
+    # # JOB: Save database query result to json
+    # data = json.dumps(collection.find({}))
     # # print(data)
     # with open(path_to_data, 'w') as file:
     #     file.write(data)
 
-    # Load json as dict
+    # JOB: Load json data as dict
     with open(path_to_data, 'r') as file:
         data = json.load(file)
 
-    # Make DataFrame from json
+    # JOB: Make DataFrame from json
     data_frame = pd.DataFrame(data)
+
+    # Print out part of data frame to console
     print(data_frame[['repo_full_name', 'readme_text']].iloc[20:30])
 
+    # Specify path to GitHub access tokens
     access_path = os.path.join(ROOT_DIR, 'DataCollection/credentials/GitHub_Access_Token.txt')
 
-    # Print column names
-    print(data_frame.columns)
-
-    # data_frame['year'] = data_frame['repo_created_at'].dt.year
-
+    # JOB: Get language for readme strings
     for index, row in tqdm(data_frame.iterrows(), total=data_frame.shape[0]):
         try:
             if row['readme_text'] is not ('' or None):
@@ -75,17 +94,17 @@ if __name__ == '__main__':
             language_name = None
             language_code = None
 
+        # Add extracted language information to data frame
         data_frame.at[index, 'language_readme'] = language_name
         data_frame.at[index, 'language_readme_code'] = language_code
 
+    # Print readme text and extracted language information to console
     print(data_frame[data_frame['language_readme'] != 'English'].loc[:, ['readme_text', 'language_readme']])
 
+    # Specify readme language as categorical feature
     data_frame['language_readme'].astype('category')
 
-    print('\n\nUnique languages:')
-    print(data_frame['language_readme'].unique())
-
-    # Language distribution
+    # Print language distribution (top 10 occurrences) to console
     print('\n\n')
     print(data_frame.groupby(['language_readme']).size().reset_index(name='Count').sort_values(
         'Count')[-10:])
@@ -93,8 +112,10 @@ if __name__ == '__main__':
     # Filter by English readmes
     data_en = data_frame[data_frame['language_readme'] == 'English'][:]
 
-    data_en.to_excel(r'Output.xlsx', engine='xlsxwriter')
+    # # Export data frame to excel file
+    # data_en.to_excel(r'Output.xlsx', engine='xlsxwriter')
 
+    # JOB: Apply preprocssing for topic modeling
     spacy.load('en')  # Load English language corpus
     # nltk.download('wordnet')  # Download wordnet
     # nltk.download('stopwords')  # Download stopwords
@@ -123,33 +144,14 @@ if __name__ == '__main__':
     dictionary = corpora.Dictionary.load('./data/dictionary.gensim')
 
     # Extract topics
-    NUM_TOPICS = 10  # Number of topics to extract
+    NUM_TOPICS = 6  # Number of topics to extract
     lda_model = gensim.models.ldamodel.LdaModel(corpus, num_topics=NUM_TOPICS, id2word=dictionary, passes=10,
                                                 alpha=[0.01] * NUM_TOPICS)
     lda_model.save('./data/model5.gensim')
 
     topics = lda_model.print_topics(num_words=7)
 
+    # Print words associated with latent topics to console
     print('\n' * 5)
     for i, topic in enumerate(topics):
         print('Topic %d: %s' % (i, topic))
-
-    # repo_count_per_year = data_frame.groupby(['year']).size().reset_index(name='counts of repos')
-    # print(repo_count_per_year)
-    #
-    # has_wiki_count = data_frame.groupby(['has_wiki']).size().reset_index(name='counts of repos')
-    # print(has_wiki_count)
-    #
-    # #has_homepage_count = data_frame.groupby(['homepage']).size().reset_index(name='counts of repos')
-    # has_homepage_count = data_frame.iloc[:,3].isna().sum()
-    # print(has_homepage_count)
-    #
-    # owner_count = data_frame.groupby(['repo_owner']).size().reset_index(name='counts of repos').sort_values(by=['counts of repos'], ascending=False)
-    # print(owner_count)
-    #
-    # print(owner_count[owner_count['counts of repos'] > 1].sum())
-    #
-    # #corr = data_frame.loc[:, data_frame.dtypes == 'int64'].corr()
-    # #sns.heatmap(corr, xticklabels=corr.columns, yticklabels=corr.columns,
-    #             cmap=sns.diverging_palette(220, 10, as_cmap=True))
-    # #plt.show()

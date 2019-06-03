@@ -1,3 +1,5 @@
+# Module implementing the conversion of a non-relational database with repositories to an RDF graph structure.
+
 import datetime
 import sys
 from config import ROOT_DIR
@@ -7,14 +9,11 @@ from tqdm import tqdm
 import pandas as pd
 from tabulate import tabulate
 
-
-class Ontology_Conversion:
-    """
-    This class implements the conversion of the Repository data base to a RDF graph
-    """
-
-
 if __name__ == '__main__':
+    """
+    Main method to be run on execution of file.
+    """
+
     output = 'data'
     g = Graph()  # Instantiate graph
     ontology = 'https://w3id.org/nno/ontology#'  # Specify ontology locations
@@ -28,7 +27,7 @@ if __name__ == '__main__':
     vs = Namespace('http://www.w3.org/2003/06/sw-vocab-status/ns#')
     cc = Namespace('http://creativecommons.org/ns#')
 
-    # # Load pickled data
+    # Load pickled data
     df_github = pd.read_json(os.path.join(ROOT_DIR, 'DataCollection/data/GitHub_Data.json'))
 
     # Print columns
@@ -47,9 +46,10 @@ if __name__ == '__main__':
     print(tabulate(df_github[20:40], headers='keys', tablefmt='psql', showindex=True))
 
     # Export to html file
-
     df_github[20:40].to_html(os.path.join(ROOT_DIR, 'DataCollection/data/Table.html'), col_space=50, na_rep='NA')
 
+
+    # JOB: Stop execution of method here
     sys.exit()  # Comment
 
     # General Information about Ontology

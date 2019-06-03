@@ -1,3 +1,7 @@
+tqdm
+gensim
+nltk
+spacy
 bson
 beautifulsoup4
 markdown

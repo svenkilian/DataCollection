@@ -1,4 +1,5 @@
-import spacy
+# Module implementing functions from the domain of natural language processing.
+
 from spacy.lang.en import English
 import nltk
 from nltk.corpus import wordnet as wn
@@ -7,7 +8,8 @@ from nltk.stem.wordnet import WordNetLemmatizer
 
 def tokenize(text):
     """
-    Cleans text and returns a list of tokens
+    Cleans text and returns a list of tokens.
+
     :param text: Text to clean and tokenize
     :return: List of tokens
     """
@@ -31,7 +33,8 @@ def tokenize(text):
 
 def get_lemma(word):
     """
-    Gets meaning of word if lemma exists
+    Gets meaning of word if lemma exists.
+
     :param word: Word to identify meaning of
     :return: Lemmatized word
     """
@@ -44,7 +47,8 @@ def get_lemma(word):
 
 def get_lemma2(word):
     """
-    Gets meaning of word if lemma exists
+    Gets meaning of word if lemma exists.
+
     :param word: Word to lemmatize
     :return: Lemmatized word
     """
@@ -53,7 +57,8 @@ def get_lemma2(word):
 
 def prepare_text_for_lda(text):
     """
-    Prepares text for topic modelling
+    Prepares text for topic modelling.
+
     :param text: Text to prepare
     :return: Tokenized and preprocessed text
     """
@@ -63,10 +68,13 @@ def prepare_text_for_lda(text):
                        'layer', 'result', 'validation', 'project', 'create', 'library', 'dataset', 'data', 'val_acc',
                        'val_loss', 'writeup', 'outlier', 'notebook', 'function', 'sample', 'trained', 'neumf',
                        'implementation', 'class', 'weight', 'output', 'download', 'model_data', 'algorithm', 'import',
-                       'epoch', 'install', 'script', 'django', 'framwork', 'application', 'client', 'pytorch', 'file',
+                       'epoch', 'install', 'script', 'django', 'framework', 'application', 'client', 'pytorch', 'file',
                        '--model', 'paper', 'feature', 'number', 'python3', 'directory', 'folder', 'based', 'language',
                        'accuracy', 'result', 'layer', 'framework', 'package', 'crispr', 'flask', 'server', 'params',
-                       'database', 'y_train', 'default', 'weight'])
+                       'database', 'y_train', 'default', 'weight', 'method', 'default', '--act', '--algo', 'evaluate,'
+                                                                                                           'accuracy',
+                       '', 'label', 'numpy',
+                       ])
 
     en_stop = set(stop_words)
     tokens = tokenize(text)

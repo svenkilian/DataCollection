@@ -1,15 +1,14 @@
+# This module implements helper functions providing ancillary functionality to other modules and functions
+
 import datetime
-import json
 import sys
 import time
 from multiprocessing import current_process
-
+from bs4 import BeautifulSoup
 from config import ROOT_DIR
 import os
 import re
-
-import requests
-from math import floor, ceil
+from math import floor
 from polyglot.text import Text
 import pycountry as country
 
@@ -17,7 +16,8 @@ import pycountry as country
 def print_progress(iteration, total, prefix='', prog='', round_avg=0, suffix='', time_lapsed=0.0, decimals=1,
                    bar_length=100):
     """
-    Call in a loop to create terminal progress bar
+    Creates terminal progress bar by being called in a loop.
+
     :param iteration: current iteration (Int)
     :param total: total iterations (Int)
     :param prefix: prefix string (Str)
@@ -43,7 +43,8 @@ def print_progress(iteration, total, prefix='', prog='', round_avg=0, suffix='',
 
 def identify_language(text):
     """
-    Identify language from string using polyglot package
+    Identifies language from string using polyglot package.
+
     :param text: String to use for language identification
     :return: Language name (English)
     """
@@ -67,8 +68,9 @@ def identify_language(text):
 
 def split_time_interval(start, end, intv, n_days):
     """
-    Split time interval into chunks according to number of sub-intervals specified as intv
-    Yields iterable of start/end tuples
+    Splits time interval into chunks according to number of sub-intervals specified as intv.
+    Yields iterable of start/end tuples.
+
     :param start: Start date of time interval
     :param end: End date of time interval
     :param intv: Number of chunks to divide time interval into
@@ -95,7 +97,8 @@ def split_time_interval(start, end, intv, n_days):
 
 def check_access_tokens(token_index, response):
     """
-    Checks state of access tokens and prints state in console; Pauses calling thread if limit is sufficiently low
+    Checks state of access tokens and prints state in console; Pauses calling thread if limit is sufficiently low.
+
     :param token_index: Index of token currently in use
     :param response: Response object from last API request
     :return:
@@ -115,7 +118,8 @@ def check_access_tokens(token_index, response):
 
 def get_access_tokens():
     """
-    Retrieves GitHub Search API authentication tokens from files
+    Retrieves GitHub Search API authentication tokens from files.
+
     :return: List of token lists
     """
     # Specify path to credentials
@@ -135,3 +139,54 @@ def get_access_tokens():
         token_lists.append(access_tokens)
 
     return token_lists
+
+
+def get_readme(response):
+    """
+    Gets plain text from readme file.
+
+    :param response: Res
+    :return: Plain plain_text of readme file
+    """
+    plain_text = None
+    link_list = []
+    reference_list = []
+    # Request successful
+    if response.status_code == 200:
+
+        # Extract plain_text and remove all line breaks
+        soup = BeautifulSoup(response.text, features='lxml')
+
+        # Find all arxiv links and append to reference_list
+        for reference in soup.findAll('a', attrs={'href': re.compile('(arxiv|ieee.org)')}):
+            reference_list.append(reference.get('href'))
+
+        # Find all links and append to link_list
+        for link in soup.findAll('a', attrs={'href': re.compile('^http://')}):
+            link_list.append(link.get('href'))
+
+        # Remove references from link_list
+        link_list = list(set(link_list) - set(reference_list))
+
+        plain_text = ''.join(soup.find_all(text=True))
+        plain_text = plain_text.replace('\n', ' ').replace('\t', ' ').replace('\r', '')
+
+        # Set plain_text to null if empty string
+        if plain_text == '':
+            plain_text = None
+
+    # Request unsuccessful
+    elif response.status_code == 404:
+        pass
+        # print(' - Repository without readme found for: %s\n%s' % (response.plain_text, response.request.url))
+
+    else:
+        print('Unknown error occurred while parsing readme file: %d' % response.status_code)
+        print(response.reason)
+        if response.status_code == 403:
+            print('Access denied.')
+
+    # print('\n\nLimit: %d' % int(response.headers['X-RateLimit-Limit']))
+    # print('Remaining: %d' % int(response.headers['X-RateLimit-Remaining']))
+
+    return plain_text, link_list, reference_list
