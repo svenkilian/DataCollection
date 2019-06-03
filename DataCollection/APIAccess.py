@@ -387,8 +387,8 @@ if __name__ == '__main__':
     """
 
     # Specify start and end search dates
-    start = datetime.date(2019, 5, 20)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
-    end = datetime.date(2019, 5, 31)
+    start = datetime.date(2019, 5, 1)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
+    end = datetime.date(2019, 5, 19)
     n_days = (end - start).days + 1
     n_macro_periods = 1
     print('Searching for repositories between %s and %s\n'
@@ -407,7 +407,7 @@ if __name__ == '__main__':
     print()
 
     for tf in periods:
-        n_process = 4  # Specify number of parallel processes to be used
+        n_process = 10  # Specify number of parallel processes to be used
         print('\nCurrent time frame: %s - %s' % (tf[0], tf[1]))
         # Retrieve token lists
         token_lists = get_access_tokens()

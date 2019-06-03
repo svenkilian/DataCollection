@@ -158,7 +158,8 @@ def extract_from_readme(response):
         soup = BeautifulSoup(response.text, features='lxml')
 
         # Find all arxiv links and append to reference_list
-        for reference in soup.findAll('a', attrs={'href': re.compile('(arxiv|ieee.org)')}):
+        journals = ['arxiv', 'ieee', 'researchgate']
+        for reference in soup.findAll('a', attrs={'href': re.compile('(' + '|'.join(journals) + ')')}):
             reference_list.append(reference.get('href'))
 
         # Find all links and append to link_list
@@ -178,15 +179,16 @@ def extract_from_readme(response):
     # Request unsuccessful
     elif response.status_code == 404:
         pass
-        # print(' - Repository without readme found for: %s\n%s' % (response.plain_text, response.request.url))
+    # print(' - Repository without readme found for: %s\n%s' % (response.plain_text, response.request.url))
+
+    elif response.status_code == 403:
+        print('Access denied.')
+
+        # print('\n\nLimit: %d' % int(response.headers['X-RateLimit-Limit']))
+        # print('Remaining: %d' % int(response.headers['X-RateLimit-Remaining']))
 
     else:
         print('Unknown error occurred while parsing readme file: %d' % response.status_code)
         print(response.reason)
-        if response.status_code == 403:
-            print('Access denied.')
-
-    # print('\n\nLimit: %d' % int(response.headers['X-RateLimit-Limit']))
-    # print('Remaining: %d' % int(response.headers['X-RateLimit-Remaining']))
 
     return plain_text, link_list, reference_list
