@@ -5,7 +5,7 @@ from multiprocessing import Process
 import requests
 
 from DataCollection import DataCollection
-from Helper_Functions import *
+from HelperFunctions import *
 
 
 def iterate_pages(resp, tokens):
