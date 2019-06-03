@@ -3,6 +3,9 @@
 import json
 import os
 import pickle
+import sys
+from pprint import pprint
+
 import gensim
 import pandas as pd
 import pycountry as country
@@ -11,7 +14,12 @@ import spacy
 from bson.json_util import dumps
 from gensim import corpora
 from polyglot.text import Text
+from tabulate import tabulate
 from tqdm import tqdm
+from urllib.parse import urlparse
+import DataCollection
+import numpy as np
+from collections import Counter
 from config import ROOT_DIR
 
 
@@ -39,31 +47,36 @@ def get_stats(data_frame):
     print(owner_count[owner_count['counts of repos'] > 1].sum())
 
 
+def analyze_references(data_frame):
+    data_frame['all_links'] = data_frame.apply(
+        lambda row: np.concatenate((np.asarray(row['reference_list']), np.asarray(row['see_also_links']))), axis=1)
+    print(tabulate(data_frame.sample(20), headers='keys', tablefmt='psql', showindex=True))
+
+    link_list = (np.concatenate(([links for links in data_frame['all_links']])))
+    link_list = [urlparse(link).netloc for link in link_list]
+
+    counter = dict(Counter(link_list))
+
+    df = pd.DataFrame(counter, index=['Count']).transpose().sort_values(['Count'], ascending=False)
+    print(df)
+
+
 if __name__ == '__main__':
     """
     Main method to be executed when module is run.
     """
 
-    # Retrieve database credentials
-    cred_path = os.path.join(ROOT_DIR, 'DataCollection/credentials/connection_creds.txt')
-
     # Specify path to saved repository data
     path_to_data = os.path.join(ROOT_DIR, 'DataCollection/data/data.json')
 
-    # JOB: Fetch data from MongoDB Atlas cloud database
-    with open(cred_path, 'r') as f:
-        connection_string = f.read()
-
-    # Establish database connection
-    client = pymongo.MongoClient(connection_string)
-    collection = client.GitHub.Exper
-    print(client.server_info())
-
-    # JOB: Save database query result to json
-    data = dumps(collection.find({}))
-    # print(data)
-    with open(path_to_data, 'w') as file:
-        file.write(data)
+    # # Create collection object
+    # collection = DataCollection.DataCollection('Exper').collection_object
+    #
+    # # JOB: Save database query result to json
+    # data = dumps(collection.find({}))
+    #
+    # with open(path_to_data, 'w') as file:
+    #     file.write(data)
 
     # JOB: Load json data as dict
     with open(path_to_data, 'r') as file:
@@ -71,6 +84,12 @@ if __name__ == '__main__':
 
     # JOB: Make DataFrame from json
     data_frame = pd.DataFrame(data)
+
+    # JOB: Call method
+    analyze_references(data_frame)
+
+    # JOB: Stop execution of method here
+    sys.exit()  # Comment
 
     # Print out part of data frame to console
     print(data_frame[['repo_full_name', 'readme_text']].iloc[20:30])

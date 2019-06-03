@@ -304,6 +304,7 @@ def seach_repos(start_date, end_date, tokens):
 
         # Initialize empty list of links
         h5_files_links = []
+        has_h5_file = False
 
         # Check for response
         if response.status_code == 200:
@@ -387,10 +388,10 @@ if __name__ == '__main__':
     """
 
     # Specify start and end search dates
-    start = datetime.date(2019, 5, 1)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
-    end = datetime.date(2019, 5, 19)
+    start = datetime.date(2019, 4, 15)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
+    end = datetime.date(2019, 4, 30)
     n_days = (end - start).days + 1
-    n_macro_periods = 1
+    n_macro_periods = 2
     print('Searching for repositories between %s and %s\n'
           'Partionioning into %d macro periods\n\n' % (start.isoformat(), end.isoformat(), n_macro_periods))
 
@@ -407,7 +408,7 @@ if __name__ == '__main__':
     print()
 
     for tf in periods:
-        n_process = 10  # Specify number of parallel processes to be used
+        n_process = 6  # Specify number of parallel processes to be used
         print('\nCurrent time frame: %s - %s' % (tf[0], tf[1]))
         # Retrieve token lists
         token_lists = get_access_tokens()

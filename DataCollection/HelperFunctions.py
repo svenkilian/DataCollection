@@ -1,6 +1,7 @@
 # This module implements helper functions providing ancillary functionality to other modules and functions
 
 import datetime
+import json
 import sys
 import time
 from multiprocessing import current_process
@@ -11,6 +12,7 @@ import re
 from math import floor
 from polyglot.text import Text
 import pycountry as country
+import pandas as pd
 
 
 def print_progress(iteration, total, prefix='', prog='', round_avg=0, suffix='', time_lapsed=0.0, decimals=1,
@@ -192,3 +194,17 @@ def extract_from_readme(response):
         print(response.reason)
 
     return plain_text, link_list, reference_list
+
+
+def get_df_from_json(file_path):
+    # Specify path to saved repository data
+    path_to_data = os.path.join(ROOT_DIR, 'DataCollection/data/', file_path)
+
+    # JOB: Load json data as dict
+    with open(path_to_data, 'r') as file:
+        data = json.load(file)
+
+    # JOB: Make DataFrame from json
+    data_frame = pd.DataFrame(data)
+
+    return data_frame
