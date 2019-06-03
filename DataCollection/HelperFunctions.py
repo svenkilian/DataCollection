@@ -141,7 +141,7 @@ def get_access_tokens():
     return token_lists
 
 
-def get_readme(response):
+def extract_from_readme(response):
     """
     Gets plain text from readme file.
 

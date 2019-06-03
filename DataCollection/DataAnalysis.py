@@ -8,6 +8,7 @@ import pandas as pd
 import pycountry as country
 import pymongo
 import spacy
+from bson.json_util import dumps
 from gensim import corpora
 from polyglot.text import Text
 from tqdm import tqdm
@@ -43,26 +44,26 @@ if __name__ == '__main__':
     Main method to be executed when module is run.
     """
 
-    # # Retrieve database credentials
-    # cred_path = os.path.join(ROOT_DIR, 'DataCollection/credentials/connection_creds.txt')
+    # Retrieve database credentials
+    cred_path = os.path.join(ROOT_DIR, 'DataCollection/credentials/connection_creds.txt')
 
     # Specify path to saved repository data
     path_to_data = os.path.join(ROOT_DIR, 'DataCollection/data/data.json')
 
-    # # JOB: Fetch data from MongoDB Atlas cloud database
-    # with open(cred_path, 'r') as f:
-    #     connection_string = f.read()
-    #
-    # # Establish database connection
-    # client = pymongo.MongoClient(connection_string)
-    # collection = client.GitHub.Repos_Exp
-    # print(client.server_info())
-    #
-    # # JOB: Save database query result to json
-    # data = json.dumps(collection.find({}))
-    # # print(data)
-    # with open(path_to_data, 'w') as file:
-    #     file.write(data)
+    # JOB: Fetch data from MongoDB Atlas cloud database
+    with open(cred_path, 'r') as f:
+        connection_string = f.read()
+
+    # Establish database connection
+    client = pymongo.MongoClient(connection_string)
+    collection = client.GitHub.Exper
+    print(client.server_info())
+
+    # JOB: Save database query result to json
+    data = dumps(collection.find({}))
+    # print(data)
+    with open(path_to_data, 'w') as file:
+        file.write(data)
 
     # JOB: Load json data as dict
     with open(path_to_data, 'r') as file:

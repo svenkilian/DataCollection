@@ -3,6 +3,7 @@ import json
 from multiprocessing import Process
 
 import requests
+from math import ceil
 
 from DataCollection import DataCollection
 from HelperFunctions import *
@@ -270,9 +271,9 @@ def seach_repos(start_date, end_date, tokens):
         # Query API for readme file
         response = requests.get(readme_path, headers=headers)
 
-        # JOB: Get Readme text and language
+        # JOB: Get Readme text, language and hyperlinks
         # Hand response to markdown parser
-        readme_text, link_list, reference_list = get_readme(response)
+        readme_text, link_list, reference_list = extract_from_readme(response)
         has_readme = True if readme_text is not None else False
         readme_language = identify_language(readme_text)
 
