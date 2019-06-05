@@ -1,3 +1,4 @@
+keras
 tqdm
 gensim
 nltk
