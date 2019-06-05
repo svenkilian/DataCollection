@@ -9,7 +9,7 @@ markdown
 pycountry
 polyglot
 docutils
-rdflib
+rdfli b
 h5py
 scrapy
 pymongo
