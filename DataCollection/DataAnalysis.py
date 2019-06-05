@@ -48,16 +48,31 @@ def get_stats(data_frame):
 
 
 def analyze_references(data_frame):
+    """
+    Shows frequency statistics of http link occurrences.
+
+    :param data_frame: Data frame containing links as Series titled "reference_list" and "see_also_links"
+    :return:
+    """
+
+    # Aggregate columns to form a new column with all links
     data_frame['all_links'] = data_frame.apply(
         lambda row: np.concatenate((np.asarray(row['reference_list']), np.asarray(row['see_also_links']))), axis=1)
+
+    # Print sample of new data frame
     print(tabulate(data_frame.sample(20), headers='keys', tablefmt='psql', showindex=True))
 
-    link_list = (np.concatenate(([links for links in data_frame['all_links']])))
+    # Get list of all links from new data frame column
+    link_list = np.concatenate(([links for links in data_frame['all_links']]))
     link_list = [urlparse(link).netloc for link in link_list]
 
+    # Generate Counter object and cast to dict
     counter = dict(Counter(link_list))
 
+    # Create new data frame containing count information
     df = pd.DataFrame(counter, index=['Count']).transpose().sort_values(['Count'], ascending=False)
+
+    # Print new data frame
     print(df)
 
 
@@ -116,7 +131,8 @@ if __name__ == '__main__':
     data_frame = pd.DataFrame(data)
 
     # JOB: Call method
-    analyze_references(data_frame)
+    # analyze_references(data_frame)
+
 
     # JOB: Stop execution of method here
     sys.exit()  # Comment
