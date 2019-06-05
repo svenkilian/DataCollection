@@ -61,6 +61,36 @@ def analyze_references(data_frame):
     print(df)
 
 
+def get_readme_langs(df):
+    """
+    Identifies langage (name and code) for all readme texts in given data frame
+
+    :param df: Data frame to extract languages and language codes from
+    :return: New data frame with two added columns for language name and code
+    """
+    for index, row in tqdm(df.iterrows(), total=df.shape[0]):
+        try:
+            if row['readme_text'] is not ('' or None):
+                text = Text(str(row['readme_text']))
+                language_code = text.language.code
+                if language_code is not None:
+                    language_name = country.languages.get(alpha_2=language_code).name
+                else:
+                    language_name = None
+            else:
+                language_name = None
+                language_code = None
+        except AttributeError as ae:
+            language_name = None
+            language_code = None
+
+        # Add extracted language information to data frame
+        df.at[index, 'language_readme'] = language_name
+        df.at[index, 'language_readme_code'] = language_code
+
+    return df
+
+
 if __name__ == '__main__':
     """
     Main method to be executed when module is run.
@@ -98,25 +128,7 @@ if __name__ == '__main__':
     access_path = os.path.join(ROOT_DIR, 'DataCollection/credentials/GitHub_Access_Token.txt')
 
     # JOB: Get language for readme strings
-    for index, row in tqdm(data_frame.iterrows(), total=data_frame.shape[0]):
-        try:
-            if row['readme_text'] is not ('' or None):
-                text = Text(str(row['readme_text']))
-                language_code = text.language.code
-                if language_code is not None:
-                    language_name = country.languages.get(alpha_2=language_code).name
-                else:
-                    language_name = None
-            else:
-                language_name = None
-                language_code = None
-        except AttributeError as ae:
-            language_name = None
-            language_code = None
-
-        # Add extracted language information to data frame
-        data_frame.at[index, 'language_readme'] = language_name
-        data_frame.at[index, 'language_readme_code'] = language_code
+    data_frame = get_readme_langs(data_frame)
 
     # Print readme text and extracted language information to console
     print(data_frame[data_frame['language_readme'] != 'English'].loc[:, ['readme_text', 'language_readme']])

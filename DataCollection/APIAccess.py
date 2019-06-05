@@ -123,8 +123,8 @@ def seach_repos(start_date, end_date, tokens):
         print('\n\nTotal number of repositories found: %d\n' % n_results)
         print('Initial request successful')
     else:
-        # In case of unsuccessful request, terminate program
-        print('Initial request failed. Terminating processes.')
+        # In case of unsuccessful request, terminate process
+        print('Initial request failed. Terminating process.')
         sys.exit(0)  # Exit program
 
     end_time = time.time()  # Stop timer
@@ -304,7 +304,6 @@ def seach_repos(start_date, end_date, tokens):
 
         # Initialize empty list of links
         h5_files_links = []
-        has_h5_file = False
 
         # Check for response
         if response.status_code == 200:
@@ -388,10 +387,10 @@ if __name__ == '__main__':
     """
 
     # Specify start and end search dates
-    start = datetime.date(2019, 4, 15)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
-    end = datetime.date(2019, 4, 30)
+    start = datetime.date(2019, 5, 1)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
+    end = datetime.date(2019, 5, 16)
     n_days = (end - start).days + 1
-    n_macro_periods = 2
+    n_macro_periods = 1
     print('Searching for repositories between %s and %s\n'
           'Partionioning into %d macro periods\n\n' % (start.isoformat(), end.isoformat(), n_macro_periods))
 
