@@ -114,14 +114,14 @@ if __name__ == '__main__':
     # Specify path to saved repository data
     path_to_data = os.path.join(ROOT_DIR, 'DataCollection/data/data.json')
 
-    # # Create collection object
-    # collection = DataCollection.DataCollection('Exper').collection_object
-    #
-    # # JOB: Save database query result to json
-    # data = dumps(collection.find({}))
-    #
-    # with open(path_to_data, 'w') as file:
-    #     file.write(data)
+    # Create collection object
+    collection = DataCollection.DataCollection('Exper').collection_object
+
+    # JOB: Save database query result to json
+    data = dumps(collection.find({}))
+
+    with open(path_to_data, 'w') as file:
+        file.write(data)
 
     # JOB: Load json data as dict
     with open(path_to_data, 'r') as file:
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     # JOB: Call method
     # analyze_references(data_frame)
 
-
+    print('Number of repositories: %d' % data_frame.shape[0])
     # JOB: Stop execution of method here
     sys.exit()  # Comment
 

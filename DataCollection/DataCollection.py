@@ -96,6 +96,19 @@ class DataCollection:
 
         return n_docs, n_structure, n_duplicates
 
+    def count_attribute(self, attribute):
+        """
+        Counts number of times the given attribute is true.
+        :param attribute: Attribute to count
+        :return: Number of true attribute occurrences
+        """
+
+        attribute_count = self.collection_object.find({'keras_used': True}).count()
+
+        print('Number of true %s: %d \n' % (attribute, attribute_count))
+
+        return attribute_count
+
     def clear_all_entries(self):
         """
         Clears all documents in cloud data base
@@ -107,7 +120,7 @@ class DataCollection:
 
 
 if __name__ == "__main__":
-    collection = DataCollection('Exper')
+    collection = DataCollection('Repos_Exp')
 
     # Print database server info
     print(collection)
@@ -115,7 +128,8 @@ if __name__ == "__main__":
     print('Number of entries in database: %d' % collection.collection_object.count_documents({}))
 
     # collection.delete_duplicates()
-    collection.clear_all_entries()  # Use to clear all entries
+    # collection.clear_all_entries()  # Use to clear all entries
+    collection.count_attribute('keras_used')
     # collection.count_duplicates()
 
     n_docs = collection.collection_object.count_documents({})

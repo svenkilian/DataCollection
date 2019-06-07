@@ -105,13 +105,14 @@ def check_access_tokens(token_index, response):
     :param response: Response object from last API request
     :return:
     """
+    sleep_time = 15
     try:
         print('\n\nRemaining/Limit for token %d: %d/%d' % (token_index,
                                                            int(response.headers['X-RateLimit-Remaining']),
                                                            int(response.headers['X-RateLimit-Limit'])))
         if int(response.headers['X-RateLimit-Remaining']) <= 6:
-            time.sleep(15)
-            print('Execution paused for 2 seconds.')
+            time.sleep(sleep_time)
+            print('Execution paused for %s seconds.' % sleep_time)
         else:
             pass
     except KeyError as e:

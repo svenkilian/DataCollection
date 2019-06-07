@@ -2,11 +2,14 @@
 import json
 from multiprocessing import Process
 
+import bson
 import requests
 from math import ceil
 
 from DataCollection import DataCollection
 from HelperFunctions import *
+from ModelLoader import extract_architecture_from_h5, extract_architecture_from_python
+import config
 
 
 def iterate_pages(resp, tokens):
@@ -15,12 +18,12 @@ def iterate_pages(resp, tokens):
 
     :param resp: response of previous request
     """
-    global token_counter, rotation_cycle, page_counter, n_results, start_time, repo_list
+    global page_counter, n_results, start_time, repo_list
     while 'next' in resp.links.keys():
         # JOB: Retrieve and process current results page
         # Determine current token index and increment counter
-        token_index = token_counter % rotation_cycle
-        token_counter += 1
+        token_index = config.token_counter % config.rotation_cycle
+        config.token_counter += 1
         headers = {'Authorization': 'token ' + tokens[token_index]}
         begin_query = time.time()
 
@@ -48,19 +51,19 @@ def iterate_pages(resp, tokens):
         else:
             # If request unsuccessful, print error message
             print('Request %d/%d failed. Error code: %d - %s' % (
-                token_counter + 1, n_results, resp.status_code, resp.reason))
+                config.token_counter + 1, n_results, resp.status_code, resp.reason))
 
 
 def seach_repos(start_date, end_date, tokens):
     """
-    Finds repositories between start_date and end_date mathing the specified search word in the specified locations.
+    Finds repositories between start_date and end_date matching the specified search word in the specified locations.
 
     :param start_date: Start date of search
     :param end_date: End date of search
     :param tokens: Authentication tokens to use
     :return:
     """
-    global token_counter, rotation_cycle, page_counter, n_results, start_time, repo_list
+    global page_counter, n_results, start_time, repo_list
     # JOB: Specify search terms, time period to search, resources to search
     # Configure number and size of requests (responses are paginated)
     n_results_per_page = 100
@@ -98,7 +101,7 @@ def seach_repos(start_date, end_date, tokens):
             time_frame + '&sort=' + query_sort_by + '&order=desc'
 
     # Set rotation cycle to number of tokens being rotated
-    rotation_cycle = len(tokens)
+    config.rotation_cycle = len(tokens)
 
     # JOB: Create initial query and send request
     # Create initial url from query
@@ -107,7 +110,7 @@ def seach_repos(start_date, end_date, tokens):
     # Set results number and token counter to zero
     n_results = 0
     page_counter = 0
-    token_counter = 0
+    config.token_counter = 0
 
     # Specify header with authentication for first query using first token in list
     headers = {'Authorization': 'token ' + tokens[0]}
@@ -153,8 +156,8 @@ def seach_repos(start_date, end_date, tokens):
     # Make URL request to GitHub API by date range chunks (due to limit of 1000 results per search request)
     while True:
         # Determine current token index and increment counter
-        token_index = token_counter % rotation_cycle
-        token_counter += 1  # Increase counter
+        token_index = config.token_counter % config.rotation_cycle
+        config.token_counter += 1  # Increase counter
         headers = {'Authorization': 'token ' + tokens[token_index]}  # Specify header for authentication
 
         # Specify time frame to search
@@ -252,8 +255,8 @@ def seach_repos(start_date, end_date, tokens):
 
         # JOB: Extract plain text from readme files
         # Determine current token index and increment counter
-        token_index = token_counter % rotation_cycle
-        token_counter += 1
+        token_index = config.token_counter % config.rotation_cycle
+        config.token_counter += 1
 
         # Specify base url for repository search
         url = 'https://api.github.com/repos/'
@@ -279,8 +282,8 @@ def seach_repos(start_date, end_date, tokens):
 
         # JOB: Get repository tags
         # Determine current token index and increment counter
-        token_index = token_counter % rotation_cycle
-        token_counter += 1  # Increase counter
+        token_index = config.token_counter % config.rotation_cycle
+        config.token_counter += 1  # Increase counter
         # Specify header
         headers = {'Authorization': 'token ' + tokens[token_index],
                    'Accept': 'application/vnd.github.mercy-preview+json'}
@@ -292,8 +295,8 @@ def seach_repos(start_date, end_date, tokens):
         tags_list = json.loads(response.text).get('names')
 
         # JOB: Search for h5 files
-        token_index = token_counter % rotation_cycle
-        token_counter += 1  # Increase counter
+        token_index = config.token_counter % config.rotation_cycle
+        config.token_counter += 1  # Increase counter
         headers = {'Authorization': 'token ' + tokens[token_index]}
 
         # Specify search for file extensions '.h5' and 'hdf5'
@@ -309,15 +312,45 @@ def seach_repos(start_date, end_date, tokens):
         if response.status_code == 200:
             # If request to API successful
             has_h5_file = json.loads(response.text).get('total_count') > 0  # '.h5' or '.hdf5' file found in repo
-
+            # In case h5 files are found, retrieve all html links to h5 files and append to list
             if has_h5_file:
                 h5_files = json.loads(response.text).get('items')
                 for file in h5_files:
                     h5_files_links.append(file['html_url'])
 
         else:
-            # raise Exception('Could not check for h5 files')
-            pass
+            has_h5_file = False
+
+        # Initialize variables with False/None
+        h5_extracted_architecture = False
+        h5_loss_function = None
+        h5_optimizer = None
+        h5_model_layers = None
+        py_loss_function = None
+        py_optimizer = None
+        py_model_layers = None
+        py_imports_keras = False
+        py_libraries = None
+        py_model_file_found = False
+
+        # JOB: Extract model architecture from h5 file
+        if has_h5_file:
+            # Iterate through h5 file links
+            for file_link in h5_files_links:
+                # Try to extract architecture information
+                h5_extracted_architecture, h5_loss_function, h5_optimizer, h5_model_layers = extract_architecture_from_h5(
+                    file_link)
+                if h5_extracted_architecture:
+                    # Stop search as soon as file with architecture information was found
+                    break
+
+        if not h5_extracted_architecture:
+            # In case no h5 files were found or no h5 file yielded architecture, extract and analyze .py files
+            py_loss_function, py_optimizer, py_model_layers, py_imports_keras, py_model_file_found, py_libraries = \
+                extract_architecture_from_python(repo['full_name'], tokens)
+
+        # Determine whether Keras was used in repository
+        keras_used = h5_extracted_architecture or py_imports_keras
 
         # JOB: Save meta data to item dict
         # Specify repo meta data to be extracted from API response
@@ -349,6 +382,21 @@ def seach_repos(start_date, end_date, tokens):
                 'h5_files_links': h5_files_links,
                 'see_also_links': link_list,
                 'reference_list': reference_list,
+                'h5_data': {
+                    'extracted_architecture': h5_extracted_architecture,
+                    'loss_function': h5_loss_function,
+                    'optimizer': h5_optimizer,
+                    'model_layers': h5_model_layers,
+                },
+                'py_data': {
+                    'imports_keras': py_imports_keras,
+                    'py_libraries': py_libraries,
+                    'model_file_found': py_model_file_found,
+                    'loss_function': py_loss_function,
+                    'optimizer': py_optimizer,
+                    'model_layers': py_model_layers,
+                },
+                'keras_used': keras_used,
                 }
 
         # # Add architecture attribute
@@ -370,12 +418,15 @@ def seach_repos(start_date, end_date, tokens):
                        time_lapsed=end_time - start_time)
 
     # Create MongoDB collection instance
-    collection = DataCollection('Exper')
+    collection = DataCollection('Repos_Exp')
     # print(collection)
 
     # Insert data into database if list is not empty
     if data:
-        collection.collection_object.insert_many(data)
+        try:
+            collection.collection_object.insert_many(data)
+        except bson.errors.InvalidDocument as id:
+            print('Error writing to data base. %s' % id.args)
 
     # Check database size and print to console
     print('\n\nNumber of Repositories in Database: %d' % collection.collection_object.count_documents({}))
@@ -387,8 +438,8 @@ if __name__ == '__main__':
     """
 
     # Specify start and end search dates
-    start = datetime.date(2019, 5, 1)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
-    end = datetime.date(2019, 5, 16)
+    start = datetime.date(2019, 6, 1)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
+    end = datetime.date(2019, 6, 6)
     n_days = (end - start).days + 1
     n_macro_periods = 1
     print('Searching for repositories between %s and %s\n'
@@ -407,7 +458,7 @@ if __name__ == '__main__':
     print()
 
     for tf in periods:
-        n_process = 6  # Specify number of parallel processes to be used
+        n_process = 12  # Specify number of parallel processes to be used
         print('\nCurrent time frame: %s - %s' % (tf[0], tf[1]))
         # Retrieve token lists
         token_lists = get_access_tokens()
