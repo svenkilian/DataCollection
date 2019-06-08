@@ -1,4 +1,5 @@
 keras
+tensorflow
 tqdm
 gensim
 nltk
@@ -9,7 +10,7 @@ markdown
 pycountry
 polyglot
 docutils
-rdfli b
+rdflib
 h5py
 scrapy
 pymongo

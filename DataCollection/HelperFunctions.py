@@ -105,14 +105,20 @@ def check_access_tokens(token_index, response):
     :param response: Response object from last API request
     :return:
     """
-    sleep_time = 15
+
+    sleep_threshold = 12
+    min_sleep_time = 5
+    max_sleep_time = 30
     try:
         print('\n\nRemaining/Limit for token %d: %d/%d' % (token_index,
                                                            int(response.headers['X-RateLimit-Remaining']),
                                                            int(response.headers['X-RateLimit-Limit'])))
-        if int(response.headers['X-RateLimit-Remaining']) <= 6:
-            time.sleep(sleep_time)
-            print('Execution paused for %s seconds.' % sleep_time)
+        remaining_requests = int(response.headers['X-RateLimit-Remaining'])
+        if remaining_requests <= sleep_threshold:
+            sleep_duration = min_sleep_time + (sleep_threshold - remaining_requests) * (
+                    (max_sleep_time - min_sleep_time) / sleep_threshold)
+            time.sleep(sleep_duration)
+            print('Execution paused for %s seconds.' % sleep_duration)
         else:
             pass
     except KeyError as e:

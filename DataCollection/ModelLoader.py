@@ -9,29 +9,31 @@ import sys
 import urllib
 from pprint import pprint
 from urllib import request
-
 import h5py
 import json
 import logging
 import pandas as pd
-
 import requests
-
 import config
 from config import token_counter
-
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
-
 stdout = sys.stdout
 sys.stdout = open(os.devnull, 'w')
 from keras.engine.saving import load_model
-
 sys.stdout = stdout
-
-from HelperFunctions import get_df_from_json, get_access_tokens
+from HelperFunctions import get_df_from_json, get_access_tokens, check_access_tokens
 from config import ROOT_DIR
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import warnings
+
+
+def warn(*args, **kwargs):
+    pass
+
+
+warnings.warn = warn
+
 neuronStoplist = ['add', 'dot', 'subtract', 'multiply', 'average', 'maximum', 'minimum', 'concatenate']
 
 
@@ -94,6 +96,9 @@ def extract_architecture_from_h5(model_url):
         print('Unknown exception occurred. %s' % e.args)
     else:
         # In case model could be successfully loaded
+        sys.stdout.write('\rLoading model successful ...')
+        sys.stdout.flush()
+
         extracted_architecture = True
         layers = dict()
 
@@ -109,7 +114,7 @@ def extract_architecture_from_h5(model_url):
             try:
                 # Extract number of neurons of current layer
                 if layer.name not in set(neuronStoplist):
-                    nr_neurons = str(layer.input.shape[1])  # Default number of neurons
+                    nr_neurons = int(layer.input.shape[1])  # Default number of neurons
                     if len(layer.input.shape) == 3:
                         nr_neurons = int(layer.input.shape[1] * layer.input.shape[2])
                     elif len(layer.input.shape) == 4:
@@ -186,10 +191,16 @@ def extract_architecture_from_python(repo_full_name, tokens):
     optimizerdone = False
     emptylines = 0
 
-    # Request results list for all .py files in repository from GitHub API
+    search_terms = ['"import+keras"', '"from+keras"', 'keras.models', 'keras.layers', 'keras.utils',
+                    'tf.keras.models.Sequential()', ]
+    query_search_terms = '+OR+'.join(search_terms)
+
+    # Request results list for all .py files in repository from GitHub API that import or otherwise use Keras
     response = requests.get(
-        'https://api.github.com/search/code?limit=100&per_page=100&q="import+keras"+OR+"from+keras"+in:file+extension:py+repo:'
+        'https://api.github.com/search/code?limit=100&per_page=100&q=' + query_search_terms + '+'
+                                                                                              'in:file+extension:py+repo:'
         + repo_full_name, headers=headers)
+    check_access_tokens(token_index, response)
     json_data = json.loads(response.text)
 
     py_files_list = []
@@ -211,6 +222,7 @@ def extract_architecture_from_python(repo_full_name, tokens):
     for ctr, raw_file_url in enumerate(py_files_list):
         # print('Processing file %d/%d ...' % (ctr + 1, len(py_files_list)))
         raw_file = requests.get(raw_file_url).text
+        check_access_tokens(token_index, response)
         libraries_found = set()
         try:
             # Store imported libraries in array
@@ -242,6 +254,8 @@ def extract_architecture_from_python(repo_full_name, tokens):
                     if re.search(r'\.add\(', line):
                         if not model_file_found:  # Flags the first found model
                             model_file_found = True
+                            sys.stdout.write('\rConstruction of Keras model found ...')
+                            sys.stdout.flush()
                             # print('Code builds model!')
 
                         if emptylines <= 5:  # Only look at the first model
@@ -377,7 +391,7 @@ def extract_architecture_from_python(repo_full_name, tokens):
 
                 # Create Neurons
                 # nrN definieren. Das ist die Anzahl der Neuronen in diesem Layer.
-                nr_neurons = layer_neuron_number[counter]
+                nr_neurons = int(layer_neuron_number[counter])
 
                 # Activation function
                 # activation_function definieren. Das ist die verwendete Aktivierungsfunktion (Bsp.: relu oder merge; alles/immer kleingeschrieben)

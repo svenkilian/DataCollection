@@ -1,6 +1,7 @@
 # This module implements database access to GitHub's REST-API for search queries
 import json
 from multiprocessing import Process
+from random import randint, randrange
 
 import bson
 import requests
@@ -10,6 +11,7 @@ from DataCollection import DataCollection
 from HelperFunctions import *
 from ModelLoader import extract_architecture_from_h5, extract_architecture_from_python
 import config
+import sys
 
 
 def iterate_pages(resp, tokens):
@@ -29,6 +31,7 @@ def iterate_pages(resp, tokens):
 
         # Submit request and save response
         resp = requests.get(resp.links['next']['url'], headers=headers)
+        check_access_tokens(token_index, resp)
 
         page_counter += 1
         end_time = time.time()
@@ -110,15 +113,17 @@ def seach_repos(start_date, end_date, tokens):
     # Set results number and token counter to zero
     n_results = 0
     page_counter = 0
-    config.token_counter = 0
+    config.token_counter = randrange(0, config.rotation_cycle)
 
+    start_token_index = randrange(0, config.rotation_cycle)
     # Specify header with authentication for first query using first token in list
-    headers = {'Authorization': 'token ' + tokens[0]}
+    headers = {'Authorization': 'token ' + tokens[start_token_index]}
 
     # Start timer for search request and submit API request
     begin_query = time.time()
     start_time = time.time()
     response = requests.get(url, headers=headers)
+    check_access_tokens(start_token_index, response)
 
     if response.status_code == 200:
         # If request successful
@@ -273,6 +278,7 @@ def seach_repos(start_date, end_date, tokens):
 
         # Query API for readme file
         response = requests.get(readme_path, headers=headers)
+        check_access_tokens(token_index, response)
 
         # JOB: Get Readme text, language and hyperlinks
         # Hand response to markdown parser
@@ -291,6 +297,7 @@ def seach_repos(start_date, end_date, tokens):
         tags_path = url + repo['full_name'] + '/topics'
         # Query API for labels
         response = requests.get(tags_path, headers=headers)
+        check_access_tokens(token_index, response)
         # Retrieve tags
         tags_list = json.loads(response.text).get('names')
 
@@ -302,7 +309,6 @@ def seach_repos(start_date, end_date, tokens):
         # Specify search for file extensions '.h5' and 'hdf5'
         query_url = 'https://api.github.com/search/code?q=extension:h5+extension:hdf5+repo:' + repo['full_name']
         response = requests.get(query_url, headers=headers)
-
         check_access_tokens(token_index, response)
 
         # Initialize empty list of links
@@ -332,6 +338,8 @@ def seach_repos(start_date, end_date, tokens):
         py_imports_keras = False
         py_libraries = None
         py_model_file_found = False
+        n_layers = None
+        n_neurons = None
 
         # JOB: Extract model architecture from h5 file
         if has_h5_file:
@@ -351,6 +359,16 @@ def seach_repos(start_date, end_date, tokens):
 
         # Determine whether Keras was used in repository
         keras_used = h5_extracted_architecture or py_imports_keras
+
+        # Determine number of layers and number of neurons
+        if h5_model_layers:
+            n_layers = len(h5_model_layers)
+            n_neurons = sum(h5_model_layers.get(key).get('nr_neurons') for key in h5_model_layers.keys() if
+                            h5_model_layers.get(key).get('nr_neurons') is not ('?' or None))
+        elif py_model_layers:
+            n_layers = len(py_model_layers)
+            n_neurons = sum(py_model_layers.get(key).get('nr_neurons') for key in py_model_layers.keys()
+                            if py_model_layers.get(key).get('nr_neurons') is not ('?' or None))
 
         # JOB: Save meta data to item dict
         # Specify repo meta data to be extracted from API response
@@ -396,6 +414,8 @@ def seach_repos(start_date, end_date, tokens):
                     'optimizer': py_optimizer,
                     'model_layers': py_model_layers,
                 },
+                'n_layers': n_layers,
+                'n_neurons': n_neurons,
                 'keras_used': keras_used,
                 }
 
@@ -438,8 +458,8 @@ if __name__ == '__main__':
     """
 
     # Specify start and end search dates
-    start = datetime.date(2019, 6, 1)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
-    end = datetime.date(2019, 6, 6)
+    start = datetime.date(2019, 6, 7)  # Letzter Stand: 2018, 12, 1 - 2018, 12, 31
+    end = datetime.date(2019, 6, 8)
     n_days = (end - start).days + 1
     n_macro_periods = 1
     print('Searching for repositories between %s and %s\n'
@@ -458,7 +478,7 @@ if __name__ == '__main__':
     print()
 
     for tf in periods:
-        n_process = 12  # Specify number of parallel processes to be used
+        n_process = 8  # Specify number of parallel processes to be used
         print('\nCurrent time frame: %s - %s' % (tf[0], tf[1]))
         # Retrieve token lists
         token_lists = get_access_tokens()
