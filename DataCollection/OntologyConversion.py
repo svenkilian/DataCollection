@@ -2,19 +2,28 @@
 
 import datetime
 import sys
+
+from werkzeug.urls import url_fix
+
 from config import ROOT_DIR
 import os
 from rdflib import Graph, BNode, ConjunctiveGraph, URIRef, Literal, Namespace, RDF, RDFS
 from tqdm import tqdm
 import pandas as pd
 from tabulate import tabulate
+import logging
 
-if __name__ == '__main__':
+logging.basicConfig(level=logging.INFO)
+
+
+def create_rdf_from_df(data_frame, output_name):
     """
     Main method to be run on execution of file.
     """
 
-    output = 'data'
+    df_github = data_frame
+    # JOB: Define Ontology and namespaces
+    output = os.path.join(ROOT_DIR, 'DataCollection/data/' + output_name)  # Specify output name
     g = Graph()  # Instantiate graph
     ontology = 'https://w3id.org/nno/ontology#'  # Specify ontology locations
     base = 'https://w3id.org/nno/data#'  # Specify base
@@ -26,31 +35,7 @@ if __name__ == '__main__':
     owl = Namespace('http://www.w3.org/2002/07/owl#')
     vs = Namespace('http://www.w3.org/2003/06/sw-vocab-status/ns#')
     cc = Namespace('http://creativecommons.org/ns#')
-
-    # Load pickled data
-    df_github = pd.read_json(os.path.join(ROOT_DIR, 'DataCollection/data/GitHub_Data.json'))
-
-    # Print columns
-    print(df_github.columns)
-
-    # Convert license to string
-    df_github['licence'] = df_github['licence'].apply(lambda x: str(x))
-
-    # Select only Models without Architectures
-    # df_github = df_github[df_github['h5-nr'] == 0]
-
-    # Print repositories with h5 file
-    # print(df_github[df_github['h5'].notna()][['h5', 'h5-nr']])
-
-    # print selection of repositories
-    print(tabulate(df_github[20:40], headers='keys', tablefmt='psql', showindex=True))
-
-    # Export to html file
-    df_github[20:40].to_html(os.path.join(ROOT_DIR, 'DataCollection/data/Table.html'), col_space=50, na_rep='NA')
-
-
-    # JOB: Stop execution of method here
-    sys.exit()  # Comment
+    doap = Namespace('http://usefulinc.com/ns/doap#')
 
     # General Information about Ontology
     tmp = URIRef('https://w3id.org/nno/data')
@@ -71,90 +56,149 @@ if __name__ == '__main__':
 
     # JOB: Iterate through repositories in data base
     for idx, row in tqdm(df_github.iterrows(), total=df_github.shape[0]):
-        # model name example (user+github repo): huohuotm/CarND-BehavioralCloning
-        modelName = row['name'][1:].replace('/', '-')
-        owner = '/'.join(row['link'].split('/')[:-1])
+        # Set model name (owner/repo) and owner
+        modelName = row['repo_full_name'].replace('/', '-')
+        owner = 'https://github.com/' + row['repo_owner']
 
         # Create Neural Network and assign model name
-        nn = URIRef(base + row['name'][1:])
-        g.add((nn, RDF.type, ontologyURI.Neural_Network))
-        if len(row['description']) > 0:
-            g.add((nn, dc.description, Literal(row['description'])))
-        g.add((nn, RDFS.label, Literal(modelName)))
+        nn = URIRef(base + row['repo_full_name'])
+        g.add((nn, RDF.type, ontologyURI.Neural_Network))  # Add model type
+        g.add((nn, RDFS.label, Literal(modelName)))  # Add model name
+
+        # Add description
+        if row['repo_desc']:
+            g.add((nn, dc.description, Literal(row['repo_desc'])))  # Add description
+
+        # Add Readme
+        if row['readme_text']:
+            g.add((nn, ontologyURI.hasReadme, Literal(row['readme_text'])))
 
         # Assign owner to model
         if owner.startswith('http'):
             g.add((nn, dc.creator, URIRef(owner)))
 
-        # Assign link to model
-        if row['link'].startswith('http'):
-            g.add((nn, ontologyURI.hasRepositoryLink, URIRef(row['link'])))
+        # Assign http URL model
+        if row['repo_url'].startswith('http'):
+            g.add((nn, ontologyURI.hasRepositoryLink, URIRef(row['repo_url'])))
 
         # Assign last modified date
-        g.add((nn, dc.modified, Literal(row['update'])))
+        g.add((nn, dc.modified, Literal(row['repo_last_mod'])))
+
+        # Assign creation date
+        g.add((nn, dc.created, Literal(row['repo_created_at'])))
 
         # Assign publishing website
         g.add((nn, dc.publisher, URIRef('https://github.com')))
-        # stars
-        # if isinstance(row['stars'], float) and not math.isnan(float(row['stars'])):
-        #    g.add((nn, ontologyURI.stars, Literal(int(row['stars']))))
+
+        # TODO: Assign categories
+        if row['repo_tags']:
+            for category_tag in row['repo_tags']:
+                g.add((nn, doap.category, Literal(category_tag)))
+
+        # Assign stars
+        if row['repo_watch'] is not None:
+            g.add((nn, ontologyURI.stars, Literal(int(row['repo_watch']))))
 
         # Add license
-        if len(row['licence']) > 0 and row['licence'] != 'nan':
-            licence = URIRef(ontology + row['licence'].replace('"', ''))
-            g.add((nn, dc.license, licence))
+        if row['license'] is not None:
+            repo_license = URIRef(row['license_url'])
+            g.add((nn, dc.license, repo_license))
 
         # Add reference links within readme
-        if isinstance(row['references'], str) and row['references'] is not None:
-            for ref in row['references'].split(';'):
-                ref = ref.split(' ')[0].replace('"', '')
-                if '<' not in ref and '>' not in ref and ('http:' in ref or 'https:' in ref):
-                    g.add((nn, dc.references, URIRef(ref)))
+        if row['reference_list']:
+            for ref in row['reference_list']:
+                g.add((nn, dc.references, URIRef(ref)))
 
-        # Add seeAlso
-        if isinstance(row['seeAlso'], str) and row['seeAlso'] is not None:
-            for ref in row['seeAlso'].split(';'):
-                ref = ref.split(' ')[0].replace('"', '')
-                if '<' not in ref and '>' not in ref and ('http:' in ref or 'https:' in ref):
-                    g.add((nn, RDFS.seeAlso, URIRef(ref)))
+        # Add see_also_links
+        if row['see_also_links']:
+            for ref in row['see_also_links']:
+                g.add((nn, RDFS.seeAlso, URIRef(ref)))
 
-        # TODO Jannik, hier infos über Neural Network Ontologie hinzufügen.
-        # Create Input Layer and add name
-        # TOOD Jannik: layerName definieren (Bsp.: https://w3id.org/nno/data#gerardnaughton7/EmergingTechProject_dense_2 ; layerName wäre hier dense_2 (dense bzw. layertype kleingeschrieben). Bitte Layer durchnummerieren (dienen der eindeutigen ID); also <<layer>>_<<NR>>)
-        # layer = URIRef(base + row['name'][1:] + '_' + layerName)
+        # Determine whether architecture information exists
+        has_architecture = (row['h5_data'].get('extracted_architecture') is not None) or (
+                row['py_data'].get('model_file_found') is not None)
 
-        # TODO Jannik: layerType definieren. Wäre in unserem Bsp. https://w3id.org/nno/ontology#Dense; also Dense
-        # layerType = URIRef(ontology + layerType)
-        # g.add((layer, RDF.type, layerType))
-        # # layerName ist wie oben (Bspw.: dense_2)
-        # g.add((layer, RDFS.label, Literal(layerName)))
+        # Determine source of architecture information
+        if row['h5_data'].get('extracted_architecture') is not None:
+            data_source = row['h5_data']
+        elif row['py_data'].get('model_file_found') is not None:
+            data_source = row['py_data']
+        else:
+            data_source = None
 
-        # Connect Layer to Neural Network
-        # g.add((nn, ontologyURI.hasLayer, layer))
+        # In case architecture information exists, add to graph
+        if has_architecture and data_source.get('model_layers') is not None:
+            for layer_id, layer in enumerate(data_source.get('model_layers').values()):
+                # Create Input Layer and add name and type
+                layer_type = layer.get('layer_type')
+                layer_name = layer_type + '_' + str(layer_id + 1)
 
-        # hasLayerSequence (von Layer)
-        # TODO Jannik: layerSeq definieren. Ist die Reihenfolge des Layers (also durchnummeriert). Input Layer = 1; zweiter Layer = 2, etc.
-        # g.add((layer, ontologyURI.hasLayerSequence, Literal(layerSeq)))
+                layer_URI = URIRef(base + row['repo_full_name'] + '_' + layer_name.lower())
+                layer_type_URI = URIRef(ontology + layer_type)
 
-        # Create Neurons
-        # TODO Jannik: nrN definieren. Das ist die Anzahl der Neuronen in diesem Layer.
-        # g.add((layer, ontologyURI.hasNeuron, Literal(nrN)))
+                g.add((layer_URI, RDF.type, layer_type_URI))
+                g.add((layer_URI, RDFS.label, Literal(layer_name)))
 
-        # Activation function
-        # TODO Jannik: actFunc definieren. Das ist die verwendete Aktivierungsfunktion (Bsp.: relu oder merge; alles/immer kleingeschrieben)
-        # g.add((layer, ontologyURI.hasActivationFunction, actFunc))
+                # Define layer sequence
+                g.add((layer_URI, ontologyURI.hasLayerSequence, Literal(layer_id + 1)))
 
-        # Loss Function
-        # TODO Jannik modelLoss definieren. Bspw: categorical_crossentropy (alles immer kleingeschrieben)
-        # r = URIRef(ontology + modelLoss)
-        # g.add((nn, ontologyURI.hasLossFunction, r))
+                # Add number of neurons
+                n_neurons = layer.get('nr_neurons')
+                g.add((layer_URI, ontologyURI.hasNeuron, Literal(n_neurons)))
 
-        # hasOptimizer
-        # TODO Jannik modelOpt definieren. Bspw: adam (alles immer kleingeschrieben
-        # r = URIRef(ontology + modelOpt)
-        # g.add((nn, ontologyURI.hasOptimizer, r))
+                # Add activation function
+                if layer.get('activation_function') is not None:
+                    activation_function = layer.get('activation_function').replace(' ', '_')
+                    activation_function_URI = URIRef(ontology + activation_function)
+                    g.add((layer_URI, ontologyURI.hasActivationFunction, activation_function_URI))
 
-    # Saving to file
+                # Connect layer to NN
+                g.add((nn, ontologyURI.hasLayer, layer_URI))
+
+            # Add loss function
+            if row['h5_data'].get('loss_function') is not None:
+                loss_function = row['h5_data'].get('loss_function').replace(' ', '_').lower()
+                loss_function_URI = URIRef(ontology + loss_function)
+                g.add((nn, ontologyURI.hasLossFunction, loss_function_URI))
+
+            # Add optimizer:
+            if row['h5_data'].get('optimizer') is not None:
+                optimizer = row['h5_data'].get('optimizer').lower()
+                optimizer_URI = URIRef(ontology + optimizer)
+                g.add((nn, ontologyURI.hasOptimizer, optimizer_URI))
+
+    # Save to file
     print('Saving file to ontology/{}'.format(output))
     g.serialize(destination='{}.nt'.format(output), format='nt')
     g.serialize(destination='{}.owl'.format(output), format='pretty-xml')
+    print('Successfully saved files.')
+
+
+if __name__ == '__main__':
+    """
+    Main method to be executed on run.
+    """
+
+    # Load data from json file
+    df_github = pd.read_json(os.path.join(ROOT_DIR, 'DataCollection/data/data.json'))
+
+    # Print column names
+    print(df_github.columns)
+
+    # JOB: Transform license object to string
+    license_base = 'https://choosealicense.com/licenses/'
+    df_github['license_url'] = df_github['license'].apply(lambda lic: license_base + lic.get('key') if lic else None)
+    df_github['license'] = df_github['license'].apply(lambda lic: lic.get('name') if lic else None)
+
+    # JOB: Fix potentially broken URLs
+    df_github['see_also_links'] = df_github['see_also_links'].apply(lambda ref_list: [url_fix(ref_link) for ref_link in
+                                                                                      ref_list])
+    df_github['reference_list'] = df_github['reference_list'].apply(lambda ref_list: [url_fix(ref_link) for ref_link in
+                                                                                      ref_list])
+
+    # print(tabulate(df_github.sample(10), headers='keys', tablefmt='psql', showindex=True))
+    # print(tabulate(df_github.loc[[12852]], headers='keys', tablefmt='psql', showindex=True))
+    # print(type(df_github.loc[12852, 'reference_list']))
+
+    create_rdf_from_df(df_github, 'graph_data')
+    create_rdf_from_df(df_github.sample(1000), 'graph_data_small')

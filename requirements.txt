@@ -1,4 +1,6 @@
+werkzeug
 keras
+tensorflow
 tqdm
 gensim
 nltk

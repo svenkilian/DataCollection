@@ -96,6 +96,19 @@ class DataCollection:
 
         return n_docs, n_structure, n_duplicates
 
+    def count_attribute(self, attribute):
+        """
+        Counts number of times the given attribute is true.
+        :param attribute: Attribute to count
+        :return: Number of true attribute occurrences
+        """
+
+        attribute_count = self.collection_object.find({attribute: True}).count()
+
+        print('Number of true %s: %d \n' % (attribute, attribute_count))
+
+        return attribute_count
+
     def clear_all_entries(self):
         """
         Clears all documents in cloud data base
@@ -105,9 +118,20 @@ class DataCollection:
         self.collection_object.remove({})
         print('Number of entries after reset: %d' % self.collection_object.count_documents({}))
 
+    def copy_to_collection(self, destination):
+        """
+        Copies calling collection to destination collection.
+        :param destination: Existing destination collection
+        :return:
+        """
+        pipeline = [{'$match': {}},
+                    {'$out': destination}]
+
+        self.collection_object.aggregate(pipeline)
+
 
 if __name__ == "__main__":
-    collection = DataCollection('Exper')
+    collection = DataCollection('Repos_Exp')
 
     # Print database server info
     print(collection)
@@ -115,13 +139,22 @@ if __name__ == "__main__":
     print('Number of entries in database: %d' % collection.collection_object.count_documents({}))
 
     # collection.delete_duplicates()
-    collection.clear_all_entries()  # Use to clear all entries
+    # collection.clear_all_entries()  # Use to clear all entries
     # collection.count_duplicates()
+    # collection.copy_to_collection('New_Collection_Name')
 
     n_docs = collection.collection_object.count_documents({})
-    n_structure = collection.collection_object.count_documents({'has_h5': True})
-    n_no_structure = collection.collection_object.count_documents({'has_h5': False})
+
+    n_keras_used = collection.count_attribute('keras_used')
+    n_structure_h5 = collection.count_attribute('h5_data.extracted_architecture')
+    n_structure_py = collection.count_attribute('py_data.model_file_found')
 
     print('Number of entries in database: %d' % n_docs)
-    print('Number of entries with structure information: %d' % n_structure)
-    print('Number of entries without structure information: %d \n' % n_no_structure)
+    print('Number of entries with structure information from h5: %d' % n_structure_h5)
+    print('Number of entries with structure information from .py file: %d \n' % n_structure_py)
+    print('Total number of entries with structure information: %d \n' % (n_structure_h5 + n_structure_py))
+    try:
+        print('Percentage of entries with structure information: %g \n' % ((n_structure_h5 + n_structure_py) / n_docs))
+        print('Percentage of entries using Keras: %g \n' % (n_keras_used / n_docs))
+    except ZeroDivisionError:
+        print('No documents in database.')

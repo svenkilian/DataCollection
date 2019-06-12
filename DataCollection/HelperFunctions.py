@@ -105,13 +105,20 @@ def check_access_tokens(token_index, response):
     :param response: Response object from last API request
     :return:
     """
+
+    sleep_threshold = 12
+    min_sleep_time = 5
+    max_sleep_time = 30
     try:
         print('\n\nRemaining/Limit for token %d: %d/%d' % (token_index,
                                                            int(response.headers['X-RateLimit-Remaining']),
                                                            int(response.headers['X-RateLimit-Limit'])))
-        if int(response.headers['X-RateLimit-Remaining']) <= 6:
-            time.sleep(15)
-            print('Execution paused for 2 seconds.')
+        remaining_requests = int(response.headers['X-RateLimit-Remaining'])
+        if remaining_requests <= sleep_threshold:
+            sleep_duration = min_sleep_time + (sleep_threshold - remaining_requests) * (
+                    (max_sleep_time - min_sleep_time) / sleep_threshold)
+            time.sleep(sleep_duration)
+            print('Execution paused for %s seconds.' % round(sleep_duration, 2))
         else:
             pass
     except KeyError as e:
@@ -160,7 +167,7 @@ def extract_from_readme(response):
         soup = BeautifulSoup(response.text, features='lxml')
 
         # Find all arxiv links and append to reference_list
-        journals = ['arxiv', 'ieee', 'researchgate']
+        journals = ['arxiv', 'ieee', 'researchgate', 'acm.org']
         for reference in soup.findAll('a', attrs={'href': re.compile('(' + '|'.join(journals) + ')')}):
             reference_list.append(reference.get('href'))
 
