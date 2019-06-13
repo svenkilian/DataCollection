@@ -152,17 +152,17 @@ if __name__ == '__main__':
     Main method to be executed when module is run.
     """
 
-    # Specify path to saved repository data
-    path_to_data = os.path.join(ROOT_DIR, 'DataCollection/data/data.json')
-
-    # Create collection object
-    collection = DataCollection.DataCollection('Repos_Exp').collection_object
-
-    # JOB: Save database query result to json
-    data = dumps(collection.find({}))
-
-    with open(path_to_data, 'w') as file:
-        file.write(data)
+    # # Specify path to saved repository data
+    # path_to_data = os.path.join(ROOT_DIR, 'DataCollection/data/data.json')
+    #
+    # # Create collection object
+    # collection = DataCollection.DataCollection('Repos_Exp').collection_object
+    #
+    # # JOB: Save database query result to json
+    # data = dumps(collection.find({}))
+    #
+    # with open(path_to_data, 'w') as file:
+    #     file.write(data)
 
     # JOB: Load json data as dict
     with open(path_to_data, 'r') as file:

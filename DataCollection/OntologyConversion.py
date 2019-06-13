@@ -5,6 +5,7 @@ import sys
 
 from werkzeug.urls import url_fix
 
+from HelperFunctions import get_loss_function_name, get_optimizer_name, get_layer_type_name
 from config import ROOT_DIR
 import os
 from rdflib import Graph, BNode, ConjunctiveGraph, URIRef, Literal, Namespace, RDF, RDFS
@@ -131,13 +132,16 @@ def create_rdf_from_df(data_frame, output_name):
             for layer_id, layer in enumerate(data_source.get('model_layers').values()):
                 # Create Input Layer and add name and type
                 layer_type = layer.get('layer_type')
-                layer_name = layer_type + '_' + str(layer_id + 1)
+                layer_name = layer.get('layer_name')
 
                 layer_URI = URIRef(base + row['repo_full_name'] + '_' + layer_name.lower())
                 layer_type_URI = URIRef(ontology + layer_type)
 
                 g.add((layer_URI, RDF.type, layer_type_URI))
                 g.add((layer_URI, RDFS.label, Literal(layer_name)))
+
+                # Add name for layer type
+                g.add((layer_type_URI, RDFS.label, Literal(get_layer_type_name(layer_type))))
 
                 # Define layer sequence
                 g.add((layer_URI, ontologyURI.hasLayerSequence, Literal(layer_id + 1)))
@@ -148,24 +152,40 @@ def create_rdf_from_df(data_frame, output_name):
 
                 # Add activation function
                 if layer.get('activation_function') is not None:
-                    activation_function = layer.get('activation_function').replace(' ', '_')
-                    activation_function_URI = URIRef(ontology + activation_function)
-                    g.add((layer_URI, ontologyURI.hasActivationFunction, activation_function_URI))
+                    activation_function_full_name = layer.get('activation_function')
+                    activation_function = activation_function_full_name.replace(' ', '_').lower()
+                else:
+                    activation_function_full_name = 'Linear'
+                    activation_function = activation_function_full_name.lower()
+
+                activation_function_URI = URIRef(ontology + activation_function)
+                g.add((layer_URI, ontologyURI.hasActivationFunction, activation_function_URI))
+
+                # Add activation function name
+                g.add((activation_function_URI, RDFS.label, Literal(activation_function_full_name)))
 
                 # Connect layer to NN
                 g.add((nn, ontologyURI.hasLayer, layer_URI))
 
             # Add loss function
             if row['h5_data'].get('loss_function') is not None:
-                loss_function = row['h5_data'].get('loss_function').replace(' ', '_').lower()
+                loss_function_full_name = row['h5_data'].get('loss_function')
+                loss_function = loss_function_full_name.replace(' ', '_').lower()
                 loss_function_URI = URIRef(ontology + loss_function)
                 g.add((nn, ontologyURI.hasLossFunction, loss_function_URI))
 
+                # Add loss function name
+                g.add((loss_function_URI, RDFS.label, Literal(get_loss_function_name(loss_function_full_name))))
+
             # Add optimizer:
             if row['h5_data'].get('optimizer') is not None:
-                optimizer = row['h5_data'].get('optimizer').lower()
+                optimizer_full_name = row['h5_data'].get('optimizer')
+                optimizer = optimizer_full_name.replace(' ', '_').lower()
                 optimizer_URI = URIRef(ontology + optimizer)
                 g.add((nn, ontologyURI.hasOptimizer, optimizer_URI))
+
+                # Add optimizer name
+                g.add((optimizer_URI, RDFS.label, Literal(get_optimizer_name(optimizer_full_name))))
 
     # Save to file
     print('Saving file to ontology/{}'.format(output))
@@ -183,7 +203,7 @@ if __name__ == '__main__':
     df_github = pd.read_json(os.path.join(ROOT_DIR, 'DataCollection/data/data.json'))
 
     # Print column names
-    print(df_github.columns)
+    # print(df_github.columns)
 
     # JOB: Transform license object to string
     license_base = 'https://choosealicense.com/licenses/'
@@ -201,4 +221,5 @@ if __name__ == '__main__':
     # print(type(df_github.loc[12852, 'reference_list']))
 
     create_rdf_from_df(df_github, 'graph_data')
-    create_rdf_from_df(df_github.sample(1000), 'graph_data_small')
+    face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
+    create_rdf_from_df(df_github.sample(500).append(face_recognition_repo), 'graph_data_small')

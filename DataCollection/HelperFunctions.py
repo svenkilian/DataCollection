@@ -215,3 +215,105 @@ def get_df_from_json(file_path):
     data_frame = pd.DataFrame(data)
 
     return data_frame
+
+def get_layer_type_name(layer_type):
+    translation_dict = {
+        'Dense': 'Dense Layer',
+        'Dropout': 'Dropout Layer',
+        'Flatten': 'Flattening Layer',
+        'SpatialDropout1D': 'Spatial 1D Dropout Layer',
+        'SpatialDropout2D': 'Spatial 2D Dropout Layer',
+        'SpatialDropout3D': 'Spatial 3D Dropout Layer',
+        'Conv1D': '1D Convolutional Layer',
+        'Conv2D': '2D Convolutional Layer',
+        'SeparableConv1D': 'Depthwise Separable 1D Convolution',
+        'SeparableConv2D': 'Depthwise Separable 2D Convolution',
+        'DepthwiseConv2D': 'Depthwise Separable 2D Convolution',
+        'Conv2DTranspose': 'Transposed Convolution Layer',
+        'Conv3D': '3D Convolution Layer',
+        'Conv3DTranspose': 'Transposed Convolution Layer',
+        'Cropping1D': 'Cropping Layer for 1D Input',
+        'Cropping2D': 'Cropping Layer for 2D Input',
+        'Cropping3D': 'Cropping Layer for 3D Data',
+        'UpSampling1D': 'Upsampling Layer for 1D Inputs',
+        'UpSampling2D': 'Upsampling Layer for 2D Inputs',
+        'UpSampling3D': 'Upsampling Layer for 3D Inputs',
+        'ZeroPadding1D': 'Zero-Padding Layer for 1D Input',
+        'ZeroPadding2D': 'Zero-Padding Layer for 2D Input',
+        'ZeroPadding3D': 'Zero-Padding Layer for 3D Input',
+        'MaxPooling1D': 'Max Pooling Layer',
+        'MaxPooling2D': 'Max Pooling 2D Layer',
+        'MaxPooling3D': 'Max Pooling 3D Layer',
+        'AveragePooling1D': 'Average Pooling Layer',
+        'AveragePooling2D': 'Average Pooling 2D Layer',
+        'AveragePooling3D': 'Average Pooling 3D Layer',
+        'GlobalMaxPooling1D': 'Global Max Pooling',
+        'GlobalMaxPooling2D': 'Global Max 2D Pooling',
+        'GlobalMaxPooling3D': 'Global Max 3D Pooling',
+        'GlobalAveragePooling1D': 'Global Average Pooling',
+        'GlobalAveragePooling2D': 'Global Average 2D Pooling',
+        'GlobalAveragePooling3D': 'Global Average 3D Pooling',
+        'LocallyConnected1D': 'Locally-Connected Layer',
+        'LocallyConnected2D': 'Locally-Connected 2D Layer',
+        'RNN': 'Recurrent Layer',
+        'SimpleRNN': 'Fully-Connected Recurrent Layer',
+        'GRU': 'Gated Recurrent Unit',
+        'LSTM': 'Long Short-Term Memory Layer',
+        'ConvLSTM2D': 'Convolutional LSTM',
+        'ConvLSTM2DCell': 'Cell Class for the ConvLSTM2D Layer',
+        'SimpleRNNCell': 'Cell Class for SimpleRNN',
+        'GRUCell': 'Cell Class for GRU Layer',
+        'LSTMCell': 'Cell Class for LSTM Layer',
+        'CuDNNGRU': 'Fast GRU Implementation',
+        'CuDNNLSTM': 'Fast LSTM Implementation',
+        'Embedding': 'Embedding Layer',
+        'BatchNormalization': 'Batch Normalization Layer',
+        'GaussianNoise': 'Gaussian Additive Zero-Centered Noise',
+        'GaussianDropout': 'Gaussian Dropout Layer',
+        'AlphaDropout': 'Alpha Dropout Layer',
+    }
+
+    return_name = translation_dict.get(layer_type, layer_type.capitalize())
+
+    return return_name
+
+
+def get_loss_function_name(function_name):
+    translation_dict = {
+        'mean_squared_error': 'Mean Squared Error',
+        'mse': 'Mean Squared Error',
+        'mean_absolute_error': 'Mean Absolute Error',
+        'mae': 'Mean Absolute Error',
+        'mean_absolute_percentage_error': 'Mean Absolute Percentage Error',
+        'mean_squared_logarithmic_error': 'Mean Squared Logarithmic Error',
+        'squared_hinge': 'Squared Hinge',
+        'hinge': 'Hinge',
+        'categorical_hinge': 'Categorial Hinge',
+        'logcosh': 'Logarith of Hyperbolic Cosine of the Prediction Error',
+        'categorical_crossentropy': 'Categorical Cross Entropy',
+        'sparse_categorical_crossentropy': 'Sparse Categorical Cross Entropy',
+        'binary_crossentropy': 'Binary Cross Entropy',
+        'kullback_leibler_divergence': 'Kullback-Leibler Divergence',
+        'poisson': 'Poisson',
+        'cosine_proximity': 'Cosine Proximity',
+    }
+
+    return_name = translation_dict.get(function_name, function_name.capitalize())
+
+    return return_name
+
+
+def get_optimizer_name(optimizer):
+    translation_dict = {
+        'SGD': 'Stochastic Gradient Descent Optimizer',
+        'RMSprop': 'RMSProp Optimizer',
+        'Adagrad': 'Adagrad Optimizer',
+        'Adadelta': 'Adadelta Optimizer',
+        'Adam': 'Adam Optimizer',
+        'Adamax': 'Adamax Optimizer',
+        'Nadam': 'Nesterov Adam Optimizer'
+    }
+
+    return_name = translation_dict.get(optimizer, optimizer.capitalize())
+
+    return return_name

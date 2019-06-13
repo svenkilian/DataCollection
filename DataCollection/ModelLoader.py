@@ -16,10 +16,12 @@ import pandas as pd
 import requests
 import config
 from config import token_counter
+
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
 stdout = sys.stdout
 sys.stdout = open(os.devnull, 'w')
 from keras.engine.saving import load_model
+
 sys.stdout = stdout
 from HelperFunctions import get_df_from_json, get_access_tokens, check_access_tokens
 from config import ROOT_DIR
@@ -131,12 +133,6 @@ def extract_architecture_from_h5(model_url):
             # Build layer as dictionary entry
             layers[str(layer_sequence)] = {'layer_name': layer_name, 'layer_type': layer_type,
                                            'nr_neurons': nr_neurons, 'activation_function': activation_function}
-
-        # for layer in layers:
-        #     print('Layer %d: %s, %s, %s' % (
-        #     layer['layer_sequence'], layer['layer_name'], layer['layer_type'], layer['nr_neurons']))
-        #
-        # print('\n\n')
 
         try:
             loss_function = model.loss.lower()
@@ -379,7 +375,6 @@ def extract_architecture_from_python(repo_full_name, tokens):
 
             for counter in range(len(layer_activation)):
                 # Create Input Layer and add name
-                # TODO: layer_name definieren (Bsp.: https://w3id.org/nno/data#gerardnaughton7/EmergingTechProject_dense_2 ; layer_name wäre hier dense_2 (dense bzw. layertype kleingeschrieben). Bitte Layer durchnummerieren (dienen der eindeutigen ID); also <<layer>>_<<NR>>)
                 l_name = layer_type[counter] + '_' + str(counter + 1)
 
                 # layer_type definieren. Wäre in unserem Bsp. https://w3id.org/nno/ontology#Dense; also Dense
