@@ -109,6 +109,19 @@ class DataCollection:
 
         return attribute_count
 
+    def count_empty_array_attributes(self, attribute):
+        """
+        Counts number of times the given attribute is true.
+        :param attribute: Attribute to count
+        :return: Number of true attribute occurrences
+        """
+
+        attribute_count = self.collection_object.find({"$or": [{attribute: {"$size": 0}}, {attribute: None}]}).count()
+
+        print('Number of true %s: %d \n' % (attribute, attribute_count))
+
+        return attribute_count
+
     def clear_all_entries(self):
         """
         Clears all documents in cloud data base
@@ -148,11 +161,13 @@ if __name__ == "__main__":
     n_keras_used = collection.count_attribute('keras_used')
     n_structure_h5 = collection.count_attribute('h5_data.extracted_architecture')
     n_structure_py = collection.count_attribute('py_data.model_file_found')
+    n_empty_tags = collection.count_empty_array_attributes('repo_tags')
 
     print('Number of entries in database: %d' % n_docs)
     print('Number of entries with structure information from h5: %d' % n_structure_h5)
     print('Number of entries with structure information from .py file: %d \n' % n_structure_py)
     print('Total number of entries with structure information: %d \n' % (n_structure_h5 + n_structure_py))
+    print('Total number of entries without topic tags: %d \n' % n_empty_tags)
     try:
         print('Percentage of entries with structure information: %g \n' % ((n_structure_h5 + n_structure_py) / n_docs))
         print('Percentage of entries using Keras: %g \n' % (n_keras_used / n_docs))
