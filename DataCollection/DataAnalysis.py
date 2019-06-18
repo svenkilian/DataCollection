@@ -2,8 +2,14 @@
 import re
 import time
 
+from sklearn import ensemble, metrics
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.manifold import SpectralEmbedding
 from sklearn.svm import LinearSVC, SVC
+from skmultilearn.adapt import MLkNN
+from joblib import dump, load
 
+from HelperFunctions import get_data_from_collection, load_data_to_df, print_progress
 from config import ROOT_DIR
 import json
 import os
@@ -26,15 +32,18 @@ import DataCollection
 import numpy as np
 from collections import Counter
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer, TfidfTransformer
-from skmultilearn.problem_transform import BinaryRelevance
-from sklearn.naive_bayes import GaussianNB
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
+from skmultilearn.problem_transform import BinaryRelevance, ClassifierChain
+from sklearn.naive_bayes import GaussianNB, MultinomialNB
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, cross_val_predict
 from sklearn.metrics import accuracy_score
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from keras.models import Sequential
 from keras.layers import Dense, Embedding, GlobalMaxPool1D, Dropout
 from keras.optimizers import Adam
+import matplotlib.pyplot as plt
+
+pd.set_option('mode.chained_assignment', None)
 
 from NLPFunctions import perform_lda, text_preprocessing, prepare_text_for_lda, LemmaTokenizer
 
@@ -186,7 +195,6 @@ def analyze_topics(data_frame):
                  'deep-reinforcement-learning', 'autoencoder'}
 
     # Filter by repositories with topic label from type_list
-    # df = df[df['Tag'].isin(type_list)]
     df = df[df['Tag'].isin(type_list)]
 
     # Print new data frame
@@ -195,44 +203,16 @@ def analyze_topics(data_frame):
     return df['Tag'].tolist()
 
 
-def get_readme_langs(df):
-    """
-    Identifies langage (name and code) for all readme texts in given data frame
-
-    :param df: Data frame to extract languages and language codes from
-    :return: New data frame with two added columns for language name and code
-    """
-    for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-        try:
-            if row['readme_text'] is not ('' or None):
-                text = Text(str(row['readme_text']))
-                language_code = text.language.code
-                if language_code is not None:
-                    language_name = country.languages.get(alpha_2=language_code).name
-                else:
-                    language_name = None
-            else:
-                language_name = None
-                language_code = None
-        except AttributeError as ae:
-            language_name = None
-            language_code = None
-
-        # Add extracted language information to data frame
-        df.at[index, 'language_readme'] = language_name
-        df.at[index, 'language_readme_code'] = language_code
-
-    return df
-
-
 def type_encoding(df, type_list):
     """
-    Performs multi-label binary encoding for neural network type.
-    :param df: Data frame to use
+    Performs multi-label binary encoding for neural network type and filters for repositories containing at
+    least one of the extracted labels.
+    :param df: Data frame containing text data to use for encoding
     :param type_list: List of neural network types
-    :return:
+    :return: Filtered data frame, list of neural network types for classification
     """
 
+    # Dict matching identical labels
     type_match_dict = {'convolutional-neural-networks': 'cnn',
                        'cnn-keras': 'cnn',
                        'cnns': 'cnn',
@@ -241,7 +221,10 @@ def type_encoding(df, type_list):
                        'recurrent-neural-networks': 'rnn',
                        'generative-adversarial-network': 'gan',
                        'deep-reinforcement-learning': 'reinforcement-learning',
-                       'lstm-neural-networks': 'lstm'
+                       'lstm-neural-networks': 'cnn',
+                       'lstm': 'cnn',
+                       'long-short-term-memory-models': 'cnn',
+                       'long-short-term-memory': 'cnn',
                        }
 
     # Deduplicate type_list
@@ -252,56 +235,127 @@ def type_encoding(df, type_list):
         lambda topic_list: [type_match_dict.get(topic, topic) for topic in
                             topic_list] if topic_list is not None else [])
 
+    # Set multi-label values
     for nn_type in type_list:
         df[nn_type] = pd.Series(
             [1 if nn_type in (topic_list if topic_list is not None else []) else 0 for topic_list in
              df['repo_tags'].tolist()])
 
+    # Filter data for repositories containing at least one of the type labels
     df = df[df[type_list].any(axis=1)]
 
     return df, type_list
 
 
-def get_data_from_collection(path_to_data, collection_name):
+def get_nn_type_from_architecture(data_frame):
     """
-    Retrieve data from database collection and store locally to file.
-    :param path_to_data: Path to export location
-    :param collection_name: Name of location to retrieve
-    :return:
+    Analyzes layer information to extract information about network type.
+    :return: NN Type labels
     """
-    # Create collection object
-    collection = DataCollection.DataCollection(collection_name).collection_object
 
-    print('Downloading data from database ...')
-    # JOB: Save database query result to json
-    data = dumps(collection.find({}))
+    # Define sets of convolutional and recurrent layers
+    convolutional_layers = {
+        'Conv1D',
+        'Conv2D',
+        'SeparableConv1D',
+        'SeparableConv2D',
+        'DepthwiseConv2D',
+        'Conv2DTranspose',
+        'Conv3D',
+        'Conv3DTranspose',
+        'Cropping1D',
+        'Cropping2D',
+        'Cropping3D',
+        'UpSampling1D',
+        'UpSampling2D',
+        'UpSampling3D',
+        'ZeroPadding1D',
+        'ZeroPadding2D',
+        'ZeroPadding3D',
+        'MaxPooling1D',
+        'MaxPooling2D',
+        'MaxPooling3D',
+        'AveragePooling1D',
+        'AveragePooling2D',
+        'AveragePooling3D',
+        'GlobalMaxPooling1D',
+        'GlobalMaxPooling2D',
+        'GlobalMaxPooling3D',
+        'GlobalAveragePooling1D',
+        'GlobalAveragePooling2D',
+        'GlobalAveragePooling3D',
+        'LocallyConnected1D',
+        'LocallyConnected2D',
+    }
+    recurrent_layers = {
+        'RNN',
+        'SimpleRNN',
+        'GRU',
+        'LSTM',
+        'ConvLSTM2D',
+        'ConvLSTM2DCell',
+        'SimpleRNNCell',
+        'GRUCell',
+        'LSTMCell',
+        'CuDNNGRU',
+        'CuDNNLSTM',
+    }
 
-    print('Write data to file ...')
-    with open(path_to_data, 'w') as file:
-        file.write(data)
+    # Initialize empty series for new features
+    data_frame['feed_forward_type'] = pd.Series(np.empty((data_frame.shape[0])))
+    data_frame['conv_type'] = pd.Series(np.empty((data_frame.shape[0])))
+    data_frame['recurrent_type'] = pd.Series(np.empty((data_frame.shape[0])))
+
+    for index, repo in data_frame.iterrows():
+
+        is_conv_nn = 0
+        is_recurrent_nn = 0
+        is_feed_forward_nn = 0
+        layers = []
+
+        if repo['h5_data'].get('extracted_architecture'):
+            layers = repo['h5_data'].get('model_layers')
+        elif repo['py_data'].get('model_file_found'):
+            layers = repo['py_data'].get('model_layers')
+
+        layer_types = set([layer.get('layer_type') for layer in layers.values()])
+
+        if len(layer_types.intersection(convolutional_layers)) > 0:
+            is_conv_nn = 1
+        if len(layer_types.intersection(recurrent_layers)) > 0:
+            is_recurrent_nn = 1
+
+        if not (is_recurrent_nn or is_conv_nn):
+            is_feed_forward_nn = 1
+
+        data_frame.loc[[index], ['feed_forward_type', 'conv_type', 'recurrent_type']] = [is_feed_forward_nn, is_conv_nn,
+                                                                                         is_recurrent_nn]
+        print_progress(index + 1, len(data_frame))
+
+    return data_frame
 
 
-def get_train_test_data(df):
+def preprocess_data(df):
     """
     Applies pre-processing and returns train-test split of data set.
-    :param load_data: Flag indicating whether data is loaded from file
     :param df: Data frame to process
-    :return: Train-test split of preprocessed data
+    :return: Train-test split of preprocessed data and fitted count vectorizer
     """
 
+    # Extract features and target matrices
     X = df['readme_text']
     y = df.iloc[:, 1:]
 
     # Fit count vectorizer and transform features
     begin_time = time.time()
-    X = CountVectorizer(strip_accents='unicode', ngram_range=(1, 2),
-                        tokenizer=LemmaTokenizer()).fit_transform(X)
+    count_vectorizer = CountVectorizer(strip_accents='unicode', ngram_range=(1, 2),
+                                       tokenizer=LemmaTokenizer(), min_df=0.002, max_df=0.01).fit(X)
+    X = count_vectorizer.transform(X)
     # X = TfidfTransformer(use_idf=True).fit_transform(X)
     end_time = time.time()
     print('Preprocessing/Vectorizing duration: %g sesconds' % round((end_time - begin_time), 2))
 
-    # JOB: Apply Latent Dirichlet Allocation
-
+    # Apply Latent Dirichlet Allocation
     # lda = LatentDirichletAllocation(n_components=6, random_state=0, learning_method='online', learning_decay=0.6,
     #                                 max_doc_update_iter=200, verbose=1)
 
@@ -310,28 +364,35 @@ def get_train_test_data(df):
     print(y.shape)
 
     # Obtain train and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
 
-    return X_train, X_test, y_train, y_test
+    return X, y, count_vectorizer
 
 
-def train_model(X_train, y_train):
+def train_model(X, y, clf, load_model=True):
     """
     Trains and returns model.
-    :param X_train: Features of training set
-    :param y_train: Labels of training set
+    :param X: Features of training set
+    :param y: Labels of training set
     :return: Trained classifier
     """
     # classifier = BinaryRelevance(GaussianNB())
     # classifier = BinaryRelevance(LinearSVC())
 
-    # Instantiate multilabel classifier
-    # classifier = BinaryRelevance(LinearSVC())
-
     # clf = GridSearchCV(classifier, param_grid, cv=5, scoring='accuracy', verbose=1, n_jobs=12)
     # Grid search result: C = 1, tol = 1
 
-    # classifier.fit(X_train.astype(float), y_train.astype(float))
+    cross_val_accuracy = None
+
+    if not load_model:
+        classifier = ClassifierChain(clf)
+        predictions = cross_val_predict(classifier, X.astype(float), y.astype(float), cv=5, n_jobs=12,
+                                        verbose=2)
+        cross_val_accuracy = metrics.f1_score(y, predictions, average='samples')
+        dump(classifier, os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
+
+    else:
+        classifier = load(os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
 
     # model = Sequential()
     # model.add(Embedding(max_words, 20, input_length=maxlen))
@@ -346,92 +407,149 @@ def train_model(X_train, y_train):
     #     ModelCheckpoint(filepath='model-simple.h5', save_best_only=True)
     # ]
     #
-    # history = model.fit(x_train, y_train,
+    # history = model.fit(x_train, y,
     #                     class_weight=class_weight,
     #                     epochs=20,
     #                     batch_size=32,
     #                     validation_split=0.1
     # callbacks = callbacks)
-    # return None
+
+    classifier.fit(X.astype(float), y.astype(float))
+
+    return classifier, cross_val_accuracy
 
 
-def test_model(df):
+def test_model(df, model, load_model=True):
     """
     Tests model performance on test data.
+    :param load_model: Flag indicating whether model is loaded from file
+    :param model: Classifier to use for each label
     :param clf: Trained classifier
     :param X: Test data features
     :param y: Test data labels
-    :return: Accuray score
+    :return: Trained classifier, Accuracy score
     """
     # predictions = clf.predict(X.astype(float)).toarray()
     X = df['readme_text']
     y = df.iloc[:, 1:]
 
     # Fit count vectorizer and transform features
-    X = CountVectorizer(strip_accents='unicode', ngram_range=(1, 2),
-                        tokenizer=LemmaTokenizer()).fit_transform(X)
+    vectorizer = CountVectorizer(strip_accents='unicode', ngram_range=(1, 2),
+                                 tokenizer=LemmaTokenizer())
+    X = vectorizer.fit_transform(X)
 
-    classifier = BinaryRelevance(LinearSVC(max_iter=10000))
-    mean_accuracy = cross_val_score(classifier, X.astype(float), y.astype(float), cv=5, n_jobs=12, verbose=3)
+    if not load_model:
+        clf_chain = ClassifierChain(model)
+        # predictions = cross_val_predict(clf_chain, X.astype(float), y.astype(float), cv=5, n_jobs=12, verbose=2)
+        # mean_accuracy_chain = metrics.f1_score(y, predictions, average='samples')
+        clf_chain.fit(X.astype(float), y.astype(float))
+        dump(clf_chain, os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
 
-    return mean_accuracy
+    else:
+        clf_chain = load(os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
+
+    return clf_chain, vectorizer
+
+
+def apply_model(clf, count_vectorizer, data_frame, type_names):
+    """
+    Applies classifier to readme data passed as a pandas series.
+    :param clf: Trained classifier for network type classification
+    :param data_frame: Data frame containing plain text readme strings
+    :return: Predictions in data frame
+    """
+
+    vectorizer = count_vectorizer
+    X = vectorizer.transform(data_frame['readme_text'])
+    predictions = pd.DataFrame(clf.predict(X.astype(float)).todense(), columns=type_names)
+
+    result_df = pd.concat(
+        [data_frame[['repo_url', 'readme_text']].reset_index(drop=True), predictions.reset_index(drop=True)],
+        ignore_index=True, axis=1)
+
+    result_df.set_axis(labels=['URL', 'Readme', *type_names], axis=1, inplace=True)
+
+    return result_df
 
 
 if __name__ == '__main__':
     """
     Main method
     """
+    # JOB: Load data from file
+    data_frame = load_data_to_df('DataCollection/data/data.json')
 
-    # Specify path to saved repository data
-    path_to_data = os.path.join(ROOT_DIR, 'DataCollection/data/data.json')
+    # JOB: Filter by repositories with architecture information
+    repos = data_frame[(data_frame['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
+        data_frame['py_data'].apply(func=lambda x: x.get('model_file_found')))].reset_index()
 
-    # Download data from database (only perform when data changed)
-    # get_data_from_collection(path_to_data, 'Repos_Exp')
+    print('Number of repositories with architecture information: %d' % len(repos))
 
-    # Load json data as dict
-    with open(path_to_data, 'r') as file:
-        data = json.load(file)
+    # JOB: Extract neural network type information from architecture
+    print('Extracting labels from architecture ...')
+    new_df = get_nn_type_from_architecture(repos)
 
-    # Make DataFrame from json
-    data_frame = pd.DataFrame(data)
+    print(tabulate(new_df[['feed_forward_type', 'conv_type', 'recurrent_type']].sample(10), headers='keys',
+                   tablefmt='psql', showindex=True))
+
+    df = new_df
+
+    type_list = ['feed_forward_type', 'conv_type', 'recurrent_type']
 
     # Extract list of Neural Network types from labels
-    type_list = analyze_topics(data_frame)
+    # type_list = analyze_topics(data_frame)
 
-    # Encode neural network types with multti-level binarization and deudplicate type_list
-    df, type_list = type_encoding(data_frame, type_list)
+    # Encode neural network types with multi-level binarization and deduplicate type_list
+    # df, type_list = type_encoding(data_frame, type_list)
+
+    # Print counts of neural network types
+    print(new_df[type_list].sum())
 
     # print(tabulate(df[['readme_text', 'repo_tags', *type_list]].sample(20), headers='keys',
     #                tablefmt='psql', showindex=True))
 
+    # df['n_classes'] = df[type_list].apply(func=np.sum, axis=1)
     # print(tabulate(
-    #     df[['repo_tags', *type_list, 'n_classes']].sort_values(['n_classes'], ascending=False).head(10),
+    #     df[['repo_full_name', 'repo_tags', *type_list, 'n_classes']].sort_values(['n_classes'], ascending=False).head(10),
     #     headers='keys',
     #     tablefmt='psql', showindex=True))
-
-    # print(df[type_list].sum())
+    #
+    # plt.hist(df['n_classes'])
+    # plt.show()
 
     # Filter by non-empty English-language readme texts
+    # JOB: Filter for data with readme
     df_learn = df[(df['readme_language'] == 'English') & (df['readme_text'] != '') & (df['readme_text'] != None)][
         ['readme_text', *type_list]]
 
-    X_train, X_test, y_train, y_test = get_train_test_data(df_learn)
-
-    # print(tabulate(X_train.sample(20), headers='keys',
-    #                tablefmt='psql', showindex=True))
-    #
+    # Apply text preprocessing and split into training and test data
+    print('Preprocessing data ...')
+    X, y, count_vectorizer = preprocess_data(df_learn)
 
     print('Number of repositories: %d' % df_learn.shape[0])
 
     print('Training model ...')
-    # begin_time = time.time()
-    # clf = train_model(X_train, y_train)
-    # end_time = time.time()
-    # print('Model fit duration: %g sesconds' % round((end_time - begin_time), 2))
+    begin_time = time.time()
+    clf, cross_val_accuracy = train_model(X, y, LinearSVC(max_iter=8000), load_model=False)
+    end_time = time.time()
+    print('Model fit duration: %g seconds' % round((end_time - begin_time), 2))
+    print('Cross validation accuracy: %g' % round(cross_val_accuracy, 2))
 
-    test_score = test_model(df_learn)
+    sys.exit(0)
+    # Filter for test data
+    test_data = data_frame[
+        (data_frame['readme_language'] == 'English') & (data_frame['readme_text'] != '') & (
+                data_frame['readme_text'] is not None) & ~ data_frame[type_list].any(axis=1)]
 
-    print('Test accuracy score: %s' % test_score)
+    print('Applying model to test data ...')
+    begin_time = time.time()
+    result_df = apply_model(clf, vectorizer, test_data[
+        test_data['repo_full_name'] == 'hadifar/GrammarCorrection'], type_list)
+    end_time = time.time()
+    print('Prediction time: %g seconds' % round((end_time - begin_time), 2))
+
+    print(tabulate(result_df, headers='keys',
+                   tablefmt='psql', showindex=True))
 
     # prediction = clf.predict(X_test.astype(float)).toarray()
 
@@ -441,6 +559,3 @@ if __name__ == '__main__':
     # print('\n' * 5)
     # for i, topic in enumerate(topics):
     #     print('Topic %d: %s' % (i, topic))
-
-    # JOB: Stop execution of method here
-    sys.exit()  # Comment

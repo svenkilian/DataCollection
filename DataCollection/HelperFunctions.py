@@ -6,6 +6,9 @@ import sys
 import time
 from multiprocessing import current_process
 from bs4 import BeautifulSoup
+from bson.json_util import dumps
+
+import DataCollection
 from config import ROOT_DIR
 import os
 import re
@@ -203,7 +206,31 @@ def extract_from_readme(response):
     return plain_text, link_list, reference_list
 
 
+def get_data_from_collection(path_to_data, collection_name):
+    """
+    Retrieve data from database collection and store locally to file.
+    :param path_to_data: Path to export location
+    :param collection_name: Name of location to retrieve
+    :return:
+    """
+    # Create collection object
+    collection = DataCollection.DataCollection(collection_name).collection_object
+
+    print('Downloading data from database ...')
+    # JOB: Save database query result to json
+    data = dumps(collection.find({}))
+
+    print('Write data to file ...')
+    with open(path_to_data, 'w') as file:
+        file.write(data)
+
+
 def get_df_from_json(file_path):
+    """
+    Loads data from json file and returns it as a pandas data frame.
+    :param file_path: File path to json file within 'data' folder
+    :return: Pandas data frame
+    """
     # Specify path to saved repository data
     path_to_data = os.path.join(ROOT_DIR, 'DataCollection/data/', file_path)
 
@@ -215,6 +242,33 @@ def get_df_from_json(file_path):
     data_frame = pd.DataFrame(data)
 
     return data_frame
+
+
+def load_data_to_df(file_path, download_data=False):
+    """
+    Loads data from json file specified in path and returns as pandas data frame.
+    If download_data flag is true, the data is loaded from data base first.
+    :param file_path: Path to json file
+    :param download_data: Flag indicating whether or not to retrieve data from database
+    :return: Data frame containing data from json file
+    """
+
+    # Specify path to saved repository data
+    path_to_data = os.path.join(ROOT_DIR, file_path)
+
+    if download_data:
+        # Download data from database (only perform when data changed)
+        get_data_from_collection(path_to_data, 'Repos_Exp')
+
+    # JOB: Load json data as dict
+    with open(path_to_data, 'r') as file:
+        data = json.load(file)
+
+    # JOB: Make DataFrame from json
+    data_frame = pd.DataFrame(data)
+
+    return data_frame
+
 
 def get_layer_type_name(layer_type):
     translation_dict = {

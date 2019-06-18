@@ -2,6 +2,9 @@
 import os
 import pickle
 
+import pycountry as country
+from polyglot.text import Text
+
 from config import ROOT_DIR
 
 import gensim
@@ -31,7 +34,6 @@ class LemmaTokenizer(object):
                        'accuracy', 'label', 'numpy', '--algo', 'package', 'default', 'framework', 'weight', 'method',
                        'weight', 'example', 'prediction', 'layer', 'activation', '--act', 'y_train'
                        ])
-
 
     def __init__(self):
         self.wnl = WordNetLemmatizer()
@@ -120,6 +122,36 @@ def prepare_text_for_lda(text):
     tokens = [get_lemma(token) for token in tokens]
 
     return tokens
+
+
+def get_readme_langs(df):
+    """
+    Identifies langage (name and code) for all readme texts in given data frame
+
+    :param df: Data frame to extract languages and language codes from
+    :return: New data frame with two added columns for language name and code
+    """
+    for index, row in tqdm(df.iterrows(), total=df.shape[0]):
+        try:
+            if row['readme_text'] is not ('' or None):
+                text = Text(str(row['readme_text']))
+                language_code = text.language.code
+                if language_code is not None:
+                    language_name = country.languages.get(alpha_2=language_code).name
+                else:
+                    language_name = None
+            else:
+                language_name = None
+                language_code = None
+        except AttributeError as ae:
+            language_name = None
+            language_code = None
+
+        # Add extracted language information to data frame
+        df.at[index, 'language_readme'] = language_name
+        df.at[index, 'language_readme_code'] = language_code
+
+    return df
 
 
 def text_preprocessing(text_series):
