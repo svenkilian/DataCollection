@@ -154,7 +154,7 @@ if __name__ == "__main__":
     # collection.delete_duplicates()
     # collection.clear_all_entries()  # Use to clear all entries
     # collection.count_duplicates()
-    # collection.copy_to_collection('New_Collection_Name')
+    collection.copy_to_collection('Repos_New')
 
     n_docs = collection.collection_object.count_documents({})
 

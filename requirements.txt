@@ -1,3 +1,4 @@
+scikit-multilearn
 werkzeug
 keras
 tensorflow

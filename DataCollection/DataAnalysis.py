@@ -35,7 +35,7 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer, Tf
 from skmultilearn.problem_transform import BinaryRelevance, ClassifierChain
 from sklearn.naive_bayes import GaussianNB, MultinomialNB
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, cross_val_predict
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, jaccard_score
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from keras.models import Sequential
@@ -349,9 +349,9 @@ def preprocess_data(df):
     # Fit count vectorizer and transform features
     begin_time = time.time()
     count_vectorizer = CountVectorizer(strip_accents='unicode', ngram_range=(1, 2),
-                                       tokenizer=LemmaTokenizer(), min_df=0.002, max_df=0.01).fit(X)
+                                       tokenizer=LemmaTokenizer(), max_features=5000).fit(X)
     X = count_vectorizer.transform(X)
-    # X = TfidfTransformer(use_idf=True).fit_transform(X)
+    X = TfidfTransformer(use_idf=True).fit_transform(X)
     end_time = time.time()
     print('Preprocessing/Vectorizing duration: %g sesconds' % round((end_time - begin_time), 2))
 
@@ -364,12 +364,12 @@ def preprocess_data(df):
     print(y.shape)
 
     # Obtain train and test sets
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0, shuffle=True)
 
-    return X, y, count_vectorizer
+    return X_train, X_test, y_train, y_test, count_vectorizer
 
 
-def train_model(X, y, clf, load_model=True):
+def train_model(X_train, y_train, clf, load_model=True):
     """
     Trains and returns model.
     :param X: Features of training set
@@ -382,13 +382,14 @@ def train_model(X, y, clf, load_model=True):
     # clf = GridSearchCV(classifier, param_grid, cv=5, scoring='accuracy', verbose=1, n_jobs=12)
     # Grid search result: C = 1, tol = 1
 
-    cross_val_accuracy = None
+    # cross_val_accuracy = None
 
     if not load_model:
         classifier = ClassifierChain(clf)
-        predictions = cross_val_predict(classifier, X.astype(float), y.astype(float), cv=5, n_jobs=12,
-                                        verbose=2)
-        cross_val_accuracy = metrics.f1_score(y, predictions, average='samples')
+        # predictions = cross_val_predict(classifier, X.astype(float), y.astype(float), cv=3, n_jobs=12,
+        #                                 verbose=2)
+        # cross_val_accuracy = metrics.f1_score(y, predictions, average='samples')
+        classifier.fit(X_train.astype(float), y_train.astype(float))
         dump(classifier, os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
 
     else:
@@ -414,12 +415,10 @@ def train_model(X, y, clf, load_model=True):
     #                     validation_split=0.1
     # callbacks = callbacks)
 
-    classifier.fit(X.astype(float), y.astype(float))
-
-    return classifier, cross_val_accuracy
+    return classifier
 
 
-def test_model(df, model, load_model=True):
+def test_model(X_test, y_test, clf):
     """
     Tests model performance on test data.
     :param load_model: Flag indicating whether model is loaded from file
@@ -429,26 +428,11 @@ def test_model(df, model, load_model=True):
     :param y: Test data labels
     :return: Trained classifier, Accuracy score
     """
-    # predictions = clf.predict(X.astype(float)).toarray()
-    X = df['readme_text']
-    y = df.iloc[:, 1:]
+    predictions = clf.predict(X_test.astype(float)).toarray()
 
-    # Fit count vectorizer and transform features
-    vectorizer = CountVectorizer(strip_accents='unicode', ngram_range=(1, 2),
-                                 tokenizer=LemmaTokenizer())
-    X = vectorizer.fit_transform(X)
+    jaccard_score = metrics.f1_score(y_test, predictions, average='weighted')
 
-    if not load_model:
-        clf_chain = ClassifierChain(model)
-        # predictions = cross_val_predict(clf_chain, X.astype(float), y.astype(float), cv=5, n_jobs=12, verbose=2)
-        # mean_accuracy_chain = metrics.f1_score(y, predictions, average='samples')
-        clf_chain.fit(X.astype(float), y.astype(float))
-        dump(clf_chain, os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
-
-    else:
-        clf_chain = load(os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
-
-    return clf_chain, vectorizer
+    return jaccard_score
 
 
 def apply_model(clf, count_vectorizer, data_frame, type_names):
@@ -477,7 +461,7 @@ if __name__ == '__main__':
     Main method
     """
     # JOB: Load data from file
-    data_frame = load_data_to_df('DataCollection/data/data.json')
+    data_frame = load_data_to_df('DataCollection/data/data.json', download_data=False)
 
     # JOB: Filter by repositories with architecture information
     repos = data_frame[(data_frame['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
@@ -487,7 +471,7 @@ if __name__ == '__main__':
 
     # JOB: Extract neural network type information from architecture
     print('Extracting labels from architecture ...')
-    new_df = get_nn_type_from_architecture(repos)
+    new_df = get_nn_type_from_architecture(repos).sample(10000)
 
     print(tabulate(new_df[['feed_forward_type', 'conv_type', 'recurrent_type']].sample(10), headers='keys',
                    tablefmt='psql', showindex=True))
@@ -524,16 +508,20 @@ if __name__ == '__main__':
 
     # Apply text preprocessing and split into training and test data
     print('Preprocessing data ...')
-    X, y, count_vectorizer = preprocess_data(df_learn)
+    X_train, X_test, y_train, y_test, count_vectorizer = preprocess_data(df_learn)
 
     print('Number of repositories: %d' % df_learn.shape[0])
 
     print('Training model ...')
     begin_time = time.time()
-    clf, cross_val_accuracy = train_model(X, y, LinearSVC(max_iter=8000), load_model=False)
+    clf = train_model(X_train, y_train, LinearSVC(max_iter=8000), load_model=False)
     end_time = time.time()
     print('Model fit duration: %g seconds' % round((end_time - begin_time), 2))
-    print('Cross validation accuracy: %g' % round(cross_val_accuracy, 2))
+    # print('Cross validation accuracy: %g' % round(cross_val_accuracy, 2))
+
+    score = test_model(X_test, y_test, clf)
+
+    print('Score: %g' % round(score, 2))
 
     sys.exit(0)
     # Filter for test data
