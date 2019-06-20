@@ -191,7 +191,8 @@ def analyze_topics(data_frame):
                    'keras-tensorflow', 'python3', 'deep-neural-networks', 'neural-networks', 'pytorch',
                    'keras-neural-networks', 'flask', 'mnist', 'numpy', 'scikit-learn', 'keras-models', 'kaggle',
                    'theano', 'data-science', 'docker', 'artificial-neural-networks', 'dataset', 'machinelearning',
-                   'deeplearning'}
+                   'deeplearning', 'artificial-intelligence', 'ai', 'machine-learning-algorithms',
+                   'behavioral-cloning'}
     type_list = {'convolutional-neural-networks', 'cnn', 'lstm', 'rnn', 'cnn-keras', 'recurrent-neural-networks',
                  'lstm-neural-networks', 'generative-adversarial-network', 'gan', 'reinforcement-learning',
                  'deep-reinforcement-learning', 'autoencoder'}
@@ -268,9 +269,11 @@ def nn_application_encoding(df, type_list):
                        'word-embeddings': 'nlp',
                        'text-mining': 'nlp',
                        'text-prediction': 'nlp',
+                       'text-generation': 'nlp',
                        'part-of-speech-tagger': 'nlp',
                        'named-entity-recognition': 'nlp',
                        'computer-vision': 'images',
+                       'semantic-segmentation': 'images',
                        'image-classification': 'images',
                        'image-processing': 'images',
                        'face-recognition': 'images',
@@ -283,7 +286,9 @@ def nn_application_encoding(df, type_list):
                        'vgg16': 'images',
                        'cifar10': 'images',
                        'opencv': 'images',
+                       'opencv-python': 'images',
                        'digit-recognition': 'images',
+                       'object-detection': 'images',
                        }
 
     # Replace synonymous types
@@ -294,11 +299,10 @@ def nn_application_encoding(df, type_list):
     # Set multi-label values
     for application_type in type_list:
         df[application_type] = pd.Series(
-            [1 if application_type in (topic_list if topic_list is not None else []) else 0 for topic_list in
-             df['repo_tags'].tolist()])
+            [1 if application_type in topic_list else 0 for topic_list in df['repo_tags'].tolist()])
 
     # Filter data for repositories containing at least one of the type labels
-    df = df[df[type_list].any(axis=1)]
+    # df = df[df[type_list].any(axis=1)]
 
     return df
 
@@ -475,6 +479,9 @@ def test_model(X_test, y_test, clf):
     """
     predictions = clf.predict(X_test.astype(float)).toarray()
 
+    df_pred = pd.DataFrame(predictions).head(10)
+    print(df_pred[~df_pred.any(axis=1)])
+
     score = metrics.f1_score(y_test, predictions, average='weighted')
 
     return score
@@ -600,17 +607,12 @@ if __name__ == '__main__':
     # JOB: Load data from file
     data_frame = load_data_to_df('DataCollection/data/data.json', download_data=False)
 
+    # analyze_topics(data_frame)
 
-    analyze_topics(data_frame)
-
-    sys.exit()
-    # Extract list of Neural Network types from labels
+    # Extract list of Neural Network application type from labels
     topic_list = ['nlp', 'images']
 
-    df = nn_application_encoding(data_frame, topic_list)
-
-    print(tabulate(df[['repo_tags', *topic_list]].sample(10), headers='keys',
-                   tablefmt='psql', showindex=True))
+    df = nn_application_encoding(data_frame.sample(1000), topic_list)
 
     print('Number of networks in training set: %d' % df.shape[0])
 
