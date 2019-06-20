@@ -600,6 +600,10 @@ if __name__ == '__main__':
     # JOB: Load data from file
     data_frame = load_data_to_df('DataCollection/data/data.json', download_data=False)
 
+
+    analyze_topics(data_frame)
+
+    sys.exit()
     # Extract list of Neural Network types from labels
     topic_list = ['nlp', 'images']
 
