@@ -193,7 +193,7 @@ def text_preprocessing(text_series):
 
 def perform_lda(data_frame):
     """
-    Perform latent dirichlet allocation on text data in given data frame.
+    Performs latent dirichlet allocation on text data in given data frame.
     :param data_frame: Data frame containing Series with text data
     :return: Latent topics
     """
