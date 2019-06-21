@@ -20,8 +20,14 @@ import pandas as pd
 
 
 class LemmaTokenizer(object):
+    """
+    Implements a generator for lemmatized tokens out of a text document
+    """
+
+    # Define stop words
     stop_words = nltk.corpus.stopwords.words('english')
 
+    # Add additional domain specific stop words
     stop_words.extend(['license', 'model', 'training', 'network', 'keras', 'KERAS', 'python', 'machine', 'learning',
                        'using', 'neural', 'input', 'train', 'weight', 'example', 'tensorflow', 'docker', 'environment',
                        'layer', 'result', 'validation', 'project', 'create', 'library', 'dataset', 'data', 'val_acc',
@@ -39,8 +45,15 @@ class LemmaTokenizer(object):
         self.wnl = WordNetLemmatizer()
 
     def __call__(self, doc):
+        """
+        Generator function returning lemmatized tokens for document
+        :param doc:
+        :return:
+        """
+        # Tokenize and lemmatize document
         lemmatized_tokens = [self.wnl.lemmatize(t) for t in word_tokenize(doc)]
-        en_stop = set(self.stop_words)
+        en_stop = set(self.stop_words)  # Set stop words
+        # Filter out short words and defined stop words
         lemmatized_tokens = [token for token in lemmatized_tokens if len(token) >= 2]
         lemmatized_tokens = [token for token in lemmatized_tokens if token not in en_stop]
 
@@ -57,12 +70,14 @@ def tokenize(text):
 
     tokens_out = []
     if text:
+        # Tokenize non-empty strings
         parser = English()
         tokens = parser(text)
         for token in tokens:
             if token.orth_.isspace():
                 continue
             else:
+                # Convert tokens to lower case
                 tokens_out.append(token.lower_)
     else:
         pass
