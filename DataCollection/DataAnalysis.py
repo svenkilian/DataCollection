@@ -1,53 +1,22 @@
 # Standalone executable module implementing experimental NLP techniques to textual information.
-import re
-import time
 
-from sklearn import ensemble, metrics
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.manifold import SpectralEmbedding
-from sklearn.svm import LinearSVC, SVC
-from skmultilearn.adapt import MLkNN
-from tabulate import tabulate
-
-from Classifiers.AttributeClfs import nn_application_encoding, preprocess_data, train_model, test_model, \
-    train_test_nn_application
-from HelperFunctions import get_data_from_collection, load_data_to_df, print_progress
-from config import ROOT_DIR
-import json
-import os
-import pickle
-import sys
-from pprint import pprint
+from collections import Counter
+from urllib.parse import urlparse
 
 import gensim
-import pandas as pd
-import pycountry as country
-import pymongo
-import spacy
-from bson.json_util import dumps
-from gensim import corpora
-from polyglot.text import Text
-
-from tqdm import tqdm
-from urllib.parse import urlparse
-import DataCollection
 import numpy as np
-from collections import Counter
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer, TfidfTransformer
+import pandas as pd
+from gensim.models import Doc2Vec
+from gensim.test.utils import get_tmpfile
+from sklearn.metrics.pairwise import cosine_similarity
+from tabulate import tabulate
+from tqdm import tqdm
 
-from sklearn.naive_bayes import GaussianNB, MultinomialNB
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, cross_val_predict
-from sklearn.metrics import accuracy_score, jaccard_score
-from sklearn.decomposition import LatentDirichletAllocation
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from keras.models import Sequential
-from keras.layers import Dense, Embedding, GlobalMaxPool1D, Dropout
-from keras.optimizers import Adam
-import matplotlib.pyplot as plt
+from Classifiers.AttributeClfs import train_test_doc2vec_nn_application, get_nn_type_from_architecture, \
+    nn_application_encoding, train_test_nn_application
+from HelperFunctions import load_data_to_df
 
 pd.set_option('mode.chained_assignment', None)
-
-from NLPFunctions import perform_lda, text_preprocessing, prepare_text_for_lda, LemmaTokenizer
 
 
 def get_stats(data_frame):
@@ -145,7 +114,7 @@ def analyze_references(data_frame):
         lambda row: np.concatenate((np.asarray(row['reference_list']), np.asarray(row['see_also_links']))), axis=1)
 
     # Print sample of new data frame
-    print(tabulate(data_frame.sample(20)['all_links'], tablefmt='psql', showindex=True))
+    print(tabulate(data_frame.sample(20)['all_links'], tablefmt='psql', showindex=True, headers='keys'))
 
     # Get list of all links from new data frame column
     link_list = np.concatenate(([links for links in data_frame['all_links']]))
@@ -208,24 +177,53 @@ def analyze_topics(data_frame):
     return df['Tag'].tolist()
 
 
+def calculate_similarities(data_frame):
+    """
+    Calculates similarities between repositories.
+
+    :param data_frame: Data frame containing readme texts.
+    :return:
+    """
+
+    # JOB: Filter repositories by repositories with non-empty English readmes with minimum length of 5000 characters
+    data_frame = data_frame[(data_frame['readme_language'] == 'English') & (data_frame['readme_text'] != None) & (
+            (data_frame['readme_text'].str.len()) > 5000) & ~(
+        data_frame['repo_name'].str.contains(
+            '([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)'))].head(1000)
+    data_frame.reset_index(inplace=True)  # Reset index
+
+    # JOB: Load pre-trained Doc2Vec model
+    print('Loading pre-trained model ...')
+    doc2vec_model = Doc2Vec.load(get_tmpfile('doc2vec_model'))
+
+    # JOB: Pair-wise comparison between repositories based on readme texts using cosine similarity
+    for ix_outer, repo in tqdm(data_frame.iterrows(), total=data_frame.shape[0]):
+        for ix_inner in range(ix_outer + 1, data_frame.shape[0]):
+            vec_1 = doc2vec_model.infer_vector(gensim.utils.simple_preprocess(repo['readme_text']))
+            vec_2 = doc2vec_model.infer_vector(
+                gensim.utils.simple_preprocess(data_frame.loc[[ix_inner], 'readme_text'].values[0]))
+
+            # Calculate cosine similarity
+            similarity = cosine_similarity(vec_1.reshape(1, -1), vec_2.reshape(1, -1))[0, 0]
+
+            # Only consider strong similarities
+            if 0.8 < similarity < 0.9:
+                print('(%d, %d): %g' % (ix_outer, ix_inner, round(similarity, 2)))
+                print(tabulate(data_frame.loc[[ix_outer, ix_inner], ['repo_url']], tablefmt='psql', showindex=True,
+                               headers='keys'))
+
+
 if __name__ == '__main__':
     """
     Main method
     """
 
     # JOB: Load data from file
+    print('Loading data ...')
     data_frame = load_data_to_df('DataCollection/data/data.json', download_data=False)
-    train_test_nn_application(data_frame)
-
-    sys.exit(0)
-
-    # JOB: Filter by repositories with architecture information
-
-    # prediction = clf.predict(X_test.astype(float)).toarray()
-
-    # topics = perform_lda(data_frame)
-
-    # Print words associated with latent topics to console
-    # print('\n' * 5)
-    # for i, topic in enumerate(topics):
-    #     print('Topic %d: %s' % (i, topic))
+    # train_test_nn_type(data_frame)
+    train_test_nn_application(data_frame, write_to_db=False)
+    # model = train_test_doc2vec_nn_application(data_frame, 'nn_type', get_nn_type_from_architecture)
+    # model = train_test_doc2vec_nn_application(data_frame, 'nn_application', nn_application_encoding)
+    # Calculate repository similarities based on readme texts
+    # calculate_similarities(data_frame)

@@ -1,19 +1,21 @@
 import os
 import re
 import time
-import pandas as pd
-import numpy as np
-from sklearn import metrics
 
+import numpy as np
+import pandas as pd
+from joblib import dump, load
+from sklearn import metrics
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC
-from skmultilearn.problem_transform import BinaryRelevance, ClassifierChain
-from HelperFunctions import print_progress
-from NLPFunctions import LemmaTokenizer
-from joblib import dump, load
+from skmultilearn.problem_transform import ClassifierChain
 from tabulate import tabulate
 
+import DataCollection
+from HelperFunctions import print_progress
+from NLPFunctions import LemmaTokenizer, perform_doc2vec_embedding, read_corpus
 from config import ROOT_DIR
 
 
@@ -21,6 +23,7 @@ def nn_type_encoding(df, type_list):
     """
     Performs multi-label binary encoding for neural network type and filters for repositories containing at
     least one of the extracted labels.
+
     :param df: Data frame containing text data to use for encoding
     :param type_list: List of neural network types
     :return: Filtered data frame, list of neural network types for classification
@@ -65,6 +68,7 @@ def nn_application_encoding(df, type_list):
     """
     Performs encoding for neural network application type and filters for repositories containing at
     least one of the extracted labels.
+
     :param df: Data frame containing text data to use for encoding
     :param type_list: List of neural network applications
     :return: Filtered data frame, list of neural network applications for classification
@@ -115,14 +119,49 @@ def nn_application_encoding(df, type_list):
     # Filter data for repositories containing at least one of the type labels
     df = df[df[type_list].any(axis=1)]
 
+    print('Number of repositories with architecture information: %d' % len(df))
+
     return df
 
 
-def get_nn_type_from_architecture(data_frame):
+def nn_decoding(df, topic_list, classification_task, drop_columns=False):
+    """
+    Maps multi-label encoding of application type back to array containing the respective tag.
+
+    :param classification_task: String indicating which classification task to do encoding for
+    :param df: Data frame containing label information in one-hot encoded form
+    :param topic_list: List of application types to consider
+    :param drop_columns: Flag indicating whether to drop the binary feature columns after decoding
+    :return: Data frame with additional column containing the decoded labels
+    """
+
+    # Initialize column with empty lists
+    df[classification_task] = np.empty((df.shape[0], 0)).tolist()
+
+    # For each application type in list, add label to nn_applications field
+    for application_type in topic_list:
+        df[classification_task] = df.apply(
+            lambda row: row[classification_task] + [application_type] if row[application_type] == 1 else row[
+                classification_task], axis=1)
+
+    if drop_columns:
+        df.drop(topic_list, axis=1, inplace=True)
+
+    return df
+
+
+def get_nn_type_from_architecture(data_frame, type_list):
     """
     Analyzes layer information to extract information about network type.
+
     :return: NN Type labels
     """
+
+    # JOB: Filter by repositories with architecture information
+    data_frame = data_frame[(data_frame['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
+        data_frame['py_data'].apply(func=lambda x: x.get('model_file_found')))].reset_index()
+
+    print('Number of repositories with architecture information: %d' % len(data_frame))
 
     # Define sets of convolutional and recurrent layers
     convolutional_layers = {
@@ -209,6 +248,7 @@ def get_nn_type_from_architecture(data_frame):
 def preprocess_data(df):
     """
     Applies pre-processing and returns train-test split of data set.
+
     :param df: Data frame to process
     :return: Train-test split of preprocessed data and fitted count vectorizer
     """
@@ -222,7 +262,8 @@ def preprocess_data(df):
     count_vectorizer = CountVectorizer(strip_accents='unicode', ngram_range=(1, 2),
                                        tokenizer=LemmaTokenizer(), max_features=500).fit(X)
     X = count_vectorizer.transform(X)
-    X = TfidfTransformer(use_idf=True).fit_transform(X)
+    tfidf_transformer = TfidfTransformer(use_idf=True)
+    X = tfidf_transformer.fit_transform(X)
     end_time = time.time()
     print('Preprocessing/Vectorizing duration: %g seconds' % round((end_time - begin_time), 2))
 
@@ -233,12 +274,13 @@ def preprocess_data(df):
     # Obtain train and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0, shuffle=True)
 
-    return X_train, X_test, y_train, y_test, count_vectorizer
+    return X_train, X_test, y_train, y_test, count_vectorizer, tfidf_transformer
 
 
 def train_model(X_train, y_train, clf, load_model=False):
     """
     Trains and returns classifier.
+
     :param load_model:
     :param clf: Classiier to train
     :param X_train: Features of training set
@@ -255,7 +297,7 @@ def train_model(X_train, y_train, clf, load_model=False):
         dump(classifier, os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
 
     else:
-        classifier = load(os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
+        classifier = load(os.path.join(ROOT_DIR, 'DataCollection/data/models/trained_model.joblib'))
 
     # model = Sequential()
     # model.add(Embedding(max_words, 20, input_length=maxlen))
@@ -283,36 +325,43 @@ def train_model(X_train, y_train, clf, load_model=False):
 def test_model(X_test, y_test, clf):
     """
     Tests model performance on test data and returns test score.
+
     :param X_test: Test data features
     :param y_test: Test data labels
     :param clf: Trained classifier to test
-    :return: Score
+    :return: Test score
     """
-    predictions = clf.predict(X_test.astype(float)).toarray()
+    predictions = clf.predict(X_test.astype(float))
+
     score = metrics.f1_score(y_test, predictions, average='weighted')
 
     return score
 
 
-def apply_model(clf, count_vectorizer, data_frame, type_names):
+def apply_model(clf, count_vectorizer, tfidf_transfomer, data_frame, type_names):
     """
-    Applies classifier to readme data passed as a pandas series.
-    :param type_names:
-    :param count_vectorizer:
+    Applies classifier to readme data passed as a pandas series and returns predictions as data frame.
+
+    :param tfidf_transfomer: Pre-trained tf-idf transformer
+    :param type_names: List of classes to predict
+    :param count_vectorizer: Pre-trained count vectorizer
     :param clf: Trained classifier for network type classification
     :param data_frame: Data frame containing plain text readme strings
     :return: Predictions in data frame
     """
 
-    vectorizer = count_vectorizer
-    X = vectorizer.transform(data_frame['readme_text'])
+    X = tfidf_transfomer.transform((count_vectorizer.transform(data_frame['readme_text'])))
     predictions = pd.DataFrame(clf.predict(X.astype(float)).todense(), columns=type_names)
 
+    # Set feed_forward type label to 0 if any of the other 2 labels apply
+    # predictions.iloc[:, [0]] = predictions.apply(lambda row: 0 if row[1:2].any() else row[[0]],
+    #                                              axis=1)
+
     result_df = pd.concat(
-        [data_frame[['repo_url', 'readme_text']].reset_index(drop=True), predictions.reset_index(drop=True)],
+        [data_frame[['_id', 'repo_url', 'readme_text']].reset_index(drop=True), predictions.reset_index(drop=True)],
         ignore_index=True, axis=1)
 
-    result_df.set_axis(labels=['URL', 'Readme', *type_names], axis=1, inplace=True)
+    result_df.set_axis(labels=['_id', 'URL', 'Readme', *type_names], axis=1, inplace=True)
 
     return result_df
 
@@ -320,22 +369,22 @@ def apply_model(clf, count_vectorizer, data_frame, type_names):
 def train_test_nn_type(data_frame):
     """
     Trains multi-label classifier on neural network types.
+
     :param data_frame: Data source
     :return:
     """
 
     program_start_time = time.time()
-    # JOB: Filter by repositories with architecture information
-    repos = data_frame[(data_frame['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
-        data_frame['py_data'].apply(func=lambda x: x.get('model_file_found')))].reset_index()
-
-    print('Number of repositories with architecture information: %d' % len(repos))
 
     # JOB: Extract neural network type information from architecture
     print('Extracting labels from architecture ...')
-    df = get_nn_type_from_architecture(repos)
+    df = get_nn_type_from_architecture(data_frame, [])
 
-    # Specify list of neural network types
+    # # JOB: Write extracted application information to database
+    # if write_to_db:
+    #     collection.add_many(df['_id'].values, 'application', df['nn_applications'].values)
+
+    # Specify list of neural network types to consider
     type_list = ['feed_forward_type', 'conv_type', 'recurrent_type']
 
     # Print counts of neural network types
@@ -365,7 +414,7 @@ def train_test_nn_type(data_frame):
 
     # Apply text preprocessing and split into training and test data
     print('Preprocessing data ...')
-    X_train, X_test, y_train, y_test, count_vectorizer = preprocess_data(df_learn)
+    X_train, X_test, y_train, y_test, count_vectorizer, tfidf_transformer = preprocess_data(df_learn)
 
     print('Number of repositories: %d' % df_learn.shape[0])
 
@@ -377,15 +426,16 @@ def train_test_nn_type(data_frame):
     print('Model fit duration: %g seconds' % round((end_time - begin_time), 2))
     # print('Cross validation accuracy: %g' % round(cross_val_accuracy, 2))
 
+    begin_time = time.time()
     score = test_model(X_test, y_test, clf)
 
     print('Score: %g' % round(score, 2))
 
-    program_end_time = time.time()
+    end_time = time.time()
 
-    print('Program execution duration: %g' % round(program_end_time - program_start_time, 2))
+    print('Model test duration: %g' % round(end_time - begin_time, 2))
 
-    # Filter for test data
+    # Filter for test data without labels
     test_data = data_frame[
         (data_frame['readme_language'] == 'English') &
         (data_frame['readme_text'] != '') &
@@ -393,26 +443,31 @@ def train_test_nn_type(data_frame):
         ~(data_frame['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) &
         ~(data_frame['py_data'].apply(func=lambda x: x.get('model_file_found')))]
 
-    # print(tabulate(test_data.sample(10), headers='keys',
-    #                tablefmt='psql', showindex=True))
-
     print('Applying model to test data ...')
     begin_time = time.time()
-    result_df = apply_model(clf, count_vectorizer, test_data.sample(10), type_list)
+    result_df = apply_model(clf, count_vectorizer, tfidf_transformer, test_data.sample(10), type_list)
     end_time = time.time()
     print('Prediction time: %g seconds' % round((end_time - begin_time), 2))
 
     print(tabulate(result_df, headers='keys',
                    tablefmt='psql', showindex=True))
 
+    program_end_time = time.time()
+    print('Program run time: %g' % round(program_end_time - program_start_time, 2))
 
-def train_test_nn_application(data_frame):
+
+def train_test_nn_application(data_frame, write_to_db=False):
     """
-    Train and test multi-label classifier on neural network application.
-    :param data_frame: Data frame contraining training and test data consisting
+    Trains and tests multi-label classifier on neural network application.
+
+    :param data_frame: Data frame containing training and test data consisting
     of readme file as plain text and binary labels indicating affiliation to application category.
+    :param write_to_db: Flag indicating whether to write network application into database
     :return:
     """
+
+    print('Performing tf-idf classification ...')
+    collection = DataCollection.DataCollection('Repos_New')
 
     program_start_time = time.time()  # Time training and testing duration
 
@@ -422,6 +477,12 @@ def train_test_nn_application(data_frame):
     # JOB: Encode and preprocess data
     # Encode class affiliation for specified labels
     df = nn_application_encoding(data_frame, topic_list)
+
+    df = nn_decoding(df, topic_list, 'nn_applications')
+
+    # JOB: Write extracted application information to database
+    if write_to_db:
+        collection.add_many(df['_id'].values, 'application', df['nn_applications'].values)
 
     print('Number of networks with application labels set: %d' % df.shape[0])
 
@@ -433,7 +494,7 @@ def train_test_nn_application(data_frame):
 
     # Apply text preprocessing and split into training and test data
     print('Preprocessing data ...')
-    X_train, X_test, y_train, y_test, count_vectorizer = preprocess_data(df_learn)
+    X_train, X_test, y_train, y_test, count_vectorizer, tfidf_transfomer = preprocess_data(df_learn)
 
     # JOB: Train model
     print('Training model ...')
@@ -449,3 +510,82 @@ def train_test_nn_application(data_frame):
 
     program_end_time = time.time()
     print('Program execution duration: %g' % round(program_end_time - program_start_time, 2))
+
+    # Filter for test data without labels
+    test_data = data_frame[
+        (data_frame['readme_language'] == 'English') &
+        (data_frame['readme_text'] != '') &
+        (data_frame['readme_text'] != None) &
+        (~data_frame.index.isin(df_learn.index))]
+
+    print('Applying model to test data ...')
+    begin_time = time.time()
+    result_df = apply_model(clf, count_vectorizer, tfidf_transfomer, test_data, topic_list)
+    end_time = time.time()
+    print('Prediction time: %g seconds' % round((end_time - begin_time), 2))
+
+    # print(tabulate(result_df.sample(10), headers='keys',
+    #                tablefmt='psql', showindex=True))
+
+    print('Decoding predicted values ...')
+    result_df_decoded = nn_decoding(result_df, topic_list, 'nn_applications')
+
+    # JOB: Write predictions into database
+    print('Writing predictions into database ...')
+    if write_to_db:
+        collection.add_many(result_df_decoded['_id'].values, 'suggested_application',
+                            result_df_decoded['nn_applications'].values)
+
+
+def train_test_doc2vec_nn_application(data_frame, classification_task, encoding_func):
+    """
+    Trains and tests doc2vec-based classifier for neural network application.
+
+    :param encoding_func: Encoding function to use for binarizing class information
+    :param classification_task: Flag indicating which label the classifier is trained on
+    :param data_frame: Data frame containing repositories
+    :return: Trained classifier
+    """
+    print('Performing doc2vec classification ...')
+    # Filter repositories for non-empty English readme
+    data_frame = data_frame[(data_frame['readme_language'] == 'English') & (data_frame['readme_text'] != None)]
+    data_frame.reset_index(inplace=True)
+
+    topic_list = []
+    # Encode applications
+    if classification_task == 'nn_application':
+        topic_list = ['nlp', 'images']
+    elif classification_task == 'nn_type':
+        topic_list = ['feed_forward_type', 'conv_type', 'recurrent_type']
+
+    df = encoding_func(data_frame, topic_list)
+    X_train, X_test, y_train, y_test = train_test_split(df['readme_text'], df[topic_list], test_size=0.2,
+                                                        random_state=0, shuffle=True)
+
+    # Train doc2vec model
+    print('Performing doc2vec ...')
+    model = perform_doc2vec_embedding(data_frame['readme_text'], train_model=False)
+
+    print('Building text corpora ...')
+    train_corpus = list(read_corpus(X_train, tokens_only=True))
+    test_corpus = list(read_corpus(X_test, tokens_only=True))
+
+    print('Vectorize text using trained embeddings ...')
+    X_train = np.array([model.infer_vector(train_corpus[i]) for i in range(len(train_corpus))])
+    X_test = np.array([model.infer_vector(test_corpus[i]) for i in range(len(test_corpus))])
+
+    # Training classifier
+    print('Training classifier ...')
+    begin_time = time.time()
+    classifier = train_model(X_train, y_train,
+                             LogisticRegression(C=0.1, solver='saga', max_iter=1000, class_weight='balanced'))
+    end_time = time.time()
+    print('Training duration: %g seconds' % round((end_time - begin_time), 2))
+
+    # JOB: Test trained model on test data
+    print('Testing classifier ...')
+    score = test_model(X_test, y_test, classifier)
+
+    print('Score: %g' % round(score, 2))
+
+    return model

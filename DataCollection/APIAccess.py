@@ -57,7 +57,7 @@ def iterate_pages(resp, tokens):
                 config.token_counter + 1, n_results, resp.status_code, resp.reason))
 
 
-def seach_repos(start_date, end_date, tokens):
+def search_repos(start_date, end_date, tokens):
     """
     Finds repositories between start_date and end_date matching the specified search word in the specified locations.
 
@@ -502,7 +502,7 @@ if __name__ == '__main__':
         # JOB: Initiate and start processes
         for index in range(n_process):
             print('Start process %d' % (index + 1))
-            p = Process(target=seach_repos, args=(*time_frames[index], token_lists[0]))
+            p = Process(target=search_repos, args=(*time_frames[index], token_lists[0]))
             processes.append(p)
             p.start()
 

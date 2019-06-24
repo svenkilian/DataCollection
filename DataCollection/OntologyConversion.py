@@ -20,6 +20,9 @@ logging.basicConfig(level=logging.INFO)
 def create_rdf_from_df(data_frame, output_name):
     """
     Main method to be run on execution of file.
+
+    :param data_frame: Data frame with repository information
+    :param output_name: Output file name
     """
 
     df_github = data_frame

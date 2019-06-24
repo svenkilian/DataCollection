@@ -1,3 +1,5 @@
+from bson import ObjectId
+
 from config import ROOT_DIR
 import os
 import pymongo
@@ -11,6 +13,7 @@ class DataCollection:
     def __init__(self, collection_name):
         """
         Constructor for a Collection object holding the reference to MongoDB collection object
+
         :param repo_name: name of collection within database
         """
 
@@ -29,6 +32,7 @@ class DataCollection:
     def __repr__(self):
         """
         Specifies string representation of DataCollection instance
+
         :return: string representation of DataCollection instance
         """
 
@@ -38,6 +42,7 @@ class DataCollection:
     def delete_duplicates(self):
         """
         Deletes duplicates from collection based on repo_url
+
         :return:
         """
         cursor = self.collection_object.aggregate(
@@ -67,6 +72,7 @@ class DataCollection:
     def count_duplicates(self):
         """
         Counts duplicate entries in collection by repo_url
+
         :return:
             n_docs: total number of documents in collection
             n_structure: number of documents with structure information
@@ -99,6 +105,7 @@ class DataCollection:
     def count_attribute(self, attribute):
         """
         Counts number of times the given attribute is true.
+
         :param attribute: Attribute to count
         :return: Number of true attribute occurrences
         """
@@ -112,6 +119,7 @@ class DataCollection:
     def count_empty_array_attributes(self, attribute):
         """
         Counts number of times the given attribute is true.
+
         :param attribute: Attribute to count
         :return: Number of true attribute occurrences
         """
@@ -122,9 +130,39 @@ class DataCollection:
 
         return attribute_count
 
+    def add_attribute(self, id, attribute_name, value):
+        """
+        Adds attribute attribute_name with specified value to specified document.
+
+        :param id: Document id to add attribute to
+        :param attribute_name: Name of attribute to add
+        :param value: Value to assign to attribute
+        :return:
+        """
+        self.collection_object.update_one({
+            '_id': ObjectId(id['$oid'])
+        }, {
+            '$set': {
+                attribute_name: value
+            }
+        }, upsert=False)
+
+    def add_many(self, ids, attribute_name, values):
+        """
+        Adds attribute and corresponding value to list of documents.
+
+        :param ids: List of document IDs to add attribute to
+        :param attribute_name: Attribute name to add/update
+        :param values: Value to assign to attribute
+        :return:
+        """
+        for id, value in zip(ids, values):
+            self.add_attribute(id, attribute_name, value)
+
     def clear_all_entries(self):
         """
         Clears all documents in cloud data base
+
         :return:
         """
         print('Number of entries before reset: %d' % self.collection_object.count_documents({}))
@@ -134,6 +172,7 @@ class DataCollection:
     def copy_to_collection(self, destination):
         """
         Copies calling collection to destination collection.
+
         :param destination: Existing destination collection
         :return:
         """

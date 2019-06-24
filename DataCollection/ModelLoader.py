@@ -1,5 +1,5 @@
 """
-This class extracts the model architecture information from a h5 file
+This module implements methods to extract the neural network architecture from h5 files or .py files.
 """
 import os
 import random

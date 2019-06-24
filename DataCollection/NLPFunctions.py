@@ -1,22 +1,25 @@
 # Module implementing functions from the domain of natural language processing.
+import multiprocessing
 import os
 import pickle
-
-import pycountry as country
-from polyglot.text import Text
-
-from config import ROOT_DIR
+import time
 
 import gensim
+import nltk
+import pandas as pd
+import pycountry as country
 import spacy
 from gensim import corpora
-from spacy.lang.en import English
-import nltk
+from gensim.models.doc2vec import Doc2Vec
+from gensim.test.utils import get_tmpfile
+from nltk import word_tokenize
 from nltk.corpus import wordnet as wn
 from nltk.stem.wordnet import WordNetLemmatizer
-from nltk import word_tokenize
+from polyglot.text import Text
+from spacy.lang.en import English
 from tqdm import tqdm
-import pandas as pd
+
+from config import ROOT_DIR
 
 
 class LemmaTokenizer(object):
@@ -172,6 +175,7 @@ def get_readme_langs(df):
 def text_preprocessing(text_series):
     """
     Applies text preprocessing to series containing strings.
+
     :param text_series: Series with strings
     :return: Series with preprocessed data
     """
@@ -209,6 +213,7 @@ def text_preprocessing(text_series):
 def perform_lda(data_frame):
     """
     Performs latent dirichlet allocation on text data in given data frame.
+
     :param data_frame: Data frame containing Series with text data
     :return: Latent topics
     """
@@ -261,3 +266,51 @@ def perform_lda(data_frame):
     topics = lda_model.print_topics(num_words=5)
 
     return topics
+
+
+def read_corpus(readme_text_series, tokens_only=False):
+    for i, document in readme_text_series.iteritems():
+        if tokens_only:
+            yield gensim.utils.simple_preprocess(document)
+        else:
+            # For training data, add tags
+            yield gensim.models.doc2vec.TaggedDocument(gensim.utils.simple_preprocess(document), [i])
+
+
+def perform_doc2vec_embedding(readme_text_series, train_model=False):
+    """
+    Performs doc2vec embedding on text corpus from data frame.
+
+    :param train_model: Flag indicating whether to train doc2vec embedding from scratch
+    :param data_frame: Data frame containing document corpis in readme_text series
+    :return: train_corpus, trained model
+    """
+
+    file_name = get_tmpfile('doc2vec_model')
+
+    if train_model:
+        print('Extracting corpus ...')
+        train_corpus = list(read_corpus(readme_text_series))
+        # test_corpus = list(read_corpus(data_frame, tokens_only=True))
+
+        # Initialize doc2vec model
+        model = gensim.models.doc2vec.Doc2Vec(vector_size=20, min_count=2, epochs=20,
+                                              workers=multiprocessing.cpu_count())
+        # Build vocabulary
+        print('Building vocabulary from corpus ...')
+        model.build_vocab(train_corpus)
+
+        # Train model
+        print('Training model using %d parallel workers ...' % multiprocessing.cpu_count())
+        begin_time = time.time()
+        model.train(train_corpus, total_examples=model.corpus_count, epochs=model.epochs)
+        end_time = time.time()
+        print('Training duration: %g seconds.' % round((end_time - begin_time), 2))
+        print('Saving model to file ...')
+        model.save(file_name)
+        print('Successfully saved model to file.')
+        print('File location: %s' % file_name)
+    else:
+        model = Doc2Vec.load(file_name)
+
+    return model

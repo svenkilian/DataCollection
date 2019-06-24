@@ -209,6 +209,7 @@ def extract_from_readme(response):
 def get_data_from_collection(path_to_data, collection_name):
     """
     Retrieve data from database collection and store locally to file.
+
     :param path_to_data: Path to export location
     :param collection_name: Name of location to retrieve
     :return:
@@ -228,6 +229,7 @@ def get_data_from_collection(path_to_data, collection_name):
 def get_df_from_json(file_path):
     """
     Loads data from json file and returns it as a pandas data frame.
+
     :param file_path: File path to json file within 'data' folder
     :return: Pandas data frame
     """
@@ -248,6 +250,7 @@ def load_data_to_df(file_path, download_data=False):
     """
     Loads data from json file specified in path and returns as pandas data frame.
     If download_data flag is true, the data is loaded from data base first.
+
     :param file_path: Path to json file
     :param download_data: Flag indicating whether or not to retrieve data from database
     :return: Data frame containing data from json file
