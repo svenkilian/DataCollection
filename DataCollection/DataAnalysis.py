@@ -13,7 +13,7 @@ from tabulate import tabulate
 from tqdm import tqdm
 
 from Classifiers.AttributeClfs import train_test_doc2vec_nn_application, get_nn_type_from_architecture, \
-    nn_application_encoding, train_test_nn_application
+    nn_application_encoding, train_test_nn_application, train_test_nn_type
 from HelperFunctions import load_data_to_df
 
 pd.set_option('mode.chained_assignment', None)
@@ -221,8 +221,8 @@ if __name__ == '__main__':
     # JOB: Load data from file
     print('Loading data ...')
     data_frame = load_data_to_df('DataCollection/data/data.json', download_data=False)
-    # train_test_nn_type(data_frame)
-    train_test_nn_application(data_frame, write_to_db=False)
+    train_test_nn_type(data_frame, write_to_db=True)
+    # train_test_nn_application(data_frame, write_to_db=False)
     # model = train_test_doc2vec_nn_application(data_frame, 'nn_type', get_nn_type_from_architecture)
     # model = train_test_doc2vec_nn_application(data_frame, 'nn_application', nn_application_encoding)
     # Calculate repository similarities based on readme texts

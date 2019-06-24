@@ -261,7 +261,7 @@ def load_data_to_df(file_path, download_data=False):
 
     if download_data:
         # Download data from database (only perform when data changed)
-        get_data_from_collection(path_to_data, 'Repos_Exp')
+        get_data_from_collection(path_to_data, 'Repos_New')
 
     # JOB: Load json data as dict
     with open(path_to_data, 'r') as file:

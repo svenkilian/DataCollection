@@ -5,11 +5,12 @@ import sys
 
 from werkzeug.urls import url_fix
 
-from HelperFunctions import get_loss_function_name, get_optimizer_name, get_layer_type_name
+from HelperFunctions import get_loss_function_name, get_optimizer_name, get_layer_type_name, load_data_to_df
 from config import ROOT_DIR
 import os
 from rdflib import Graph, BNode, ConjunctiveGraph, URIRef, Literal, Namespace, RDF, RDFS
 from tqdm import tqdm
+import numpy as np
 import pandas as pd
 from tabulate import tabulate
 import logging
@@ -66,6 +67,19 @@ def create_rdf_from_df(data_frame, output_name):
 
         # Create Neural Network and assign model name
         nn = URIRef(base + row['repo_full_name'])
+        if row.get('nn_type') is not np.nan:
+            if 'feed_forward_type' in row.get('nn_type'):
+                g.add((nn, RDF.type, ontologyURI.Feed_Forward_Neural_Network))  # Add model type
+                print('Added Feed_Forward_Neural_Network')
+            if 'conv_type' in row.get('nn_type'):
+                g.add((nn, RDF.type, ontologyURI.Convolutional_Neural_Network))  # Add model type
+                print('Added Convolutional_Neural_Network')
+            if 'recurrent_type' in row.get('nn_type'):
+                g.add((nn, RDF.type, ontologyURI.Recurrent_Neural_Network))  # Add model type
+                print('Added Recurrent_Neural_Network')
+        else:
+            # If architecture information is not available, set to default
+            g.add((nn, RDF.type, ontologyURI.Neural_Network))  # Add model type
         g.add((nn, RDF.type, ontologyURI.Neural_Network))  # Add model type
         g.add((nn, RDFS.label, Literal(modelName)))  # Add model name
 
@@ -191,7 +205,7 @@ def create_rdf_from_df(data_frame, output_name):
                 g.add((optimizer_URI, RDFS.label, Literal(get_optimizer_name(optimizer_full_name))))
 
     # Save to file
-    print('Saving file to ontology/{}'.format(output))
+    print('Saving file to {}'.format(output))
     g.serialize(destination='{}.nt'.format(output), format='nt')
     g.serialize(destination='{}.owl'.format(output), format='pretty-xml')
     print('Successfully saved files.')
@@ -203,7 +217,8 @@ if __name__ == '__main__':
     """
 
     # Load data from json file
-    df_github = pd.read_json(os.path.join(ROOT_DIR, 'DataCollection/data/data.json'))
+    # df_github = pd.read_json(os.path.join(ROOT_DIR, 'DataCollection/data/data.json'))
+    df_github = load_data_to_df(os.path.join(ROOT_DIR, 'DataCollection/data/data.json'), download_data=False)
 
     # Print column names
     # print(df_github.columns)
@@ -223,6 +238,6 @@ if __name__ == '__main__':
     # print(tabulate(df_github.loc[[12852]], headers='keys', tablefmt='psql', showindex=True))
     # print(type(df_github.loc[12852, 'reference_list']))
 
-    create_rdf_from_df(df_github, 'graph_data')
+    # create_rdf_from_df(df_github, 'graph_data')  # TODO: Uncomment
     face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
-    create_rdf_from_df(df_github.sample(500).append(face_recognition_repo), 'graph_data_small')
+    create_rdf_from_df(df_github.sample(1000).append(face_recognition_repo), 'graph_data_small')

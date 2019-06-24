@@ -159,7 +159,7 @@ def get_nn_type_from_architecture(data_frame, type_list):
 
     # JOB: Filter by repositories with architecture information
     data_frame = data_frame[(data_frame['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
-        data_frame['py_data'].apply(func=lambda x: x.get('model_file_found')))].reset_index()
+        data_frame['py_data'].apply(func=lambda x: x.get('model_file_found')))]
 
     print('Number of repositories with architecture information: %d' % len(data_frame))
 
@@ -216,7 +216,7 @@ def get_nn_type_from_architecture(data_frame, type_list):
     data_frame['conv_type'] = pd.Series(np.empty((data_frame.shape[0])))
     data_frame['recurrent_type'] = pd.Series(np.empty((data_frame.shape[0])))
 
-    for index, repo in data_frame.iterrows():
+    for ix, (index, repo) in enumerate(data_frame.iterrows()):
 
         is_conv_nn = 0
         is_recurrent_nn = 0
@@ -240,12 +240,12 @@ def get_nn_type_from_architecture(data_frame, type_list):
 
         data_frame.loc[[index], ['feed_forward_type', 'conv_type', 'recurrent_type']] = [is_feed_forward_nn, is_conv_nn,
                                                                                          is_recurrent_nn]
-        print_progress(index + 1, len(data_frame))
+        print_progress(ix + 1, len(data_frame))
 
     return data_frame
 
 
-def preprocess_data(df):
+def preprocess_data(df, type_list):
     """
     Applies pre-processing and returns train-test split of data set.
 
@@ -255,7 +255,7 @@ def preprocess_data(df):
 
     # Extract features and target matrices
     X = df['readme_text']
-    y = df.iloc[:, 1:]
+    y = df.loc[:, type_list]
 
     # Fit count vectorizer and transform features
     begin_time = time.time()
@@ -366,7 +366,7 @@ def apply_model(clf, count_vectorizer, tfidf_transfomer, data_frame, type_names)
     return result_df
 
 
-def train_test_nn_type(data_frame):
+def train_test_nn_type(data_frame, write_to_db=False):
     """
     Trains multi-label classifier on neural network types.
 
@@ -374,18 +374,24 @@ def train_test_nn_type(data_frame):
     :return:
     """
 
+    data_frame.set_index('repo_full_name', inplace=True)
     program_start_time = time.time()
+    collection = DataCollection.DataCollection('Repos_New')
+
+    # Specify list of neural network types to consider
+    type_list = ['feed_forward_type', 'conv_type', 'recurrent_type']
 
     # JOB: Extract neural network type information from architecture
     print('Extracting labels from architecture ...')
     df = get_nn_type_from_architecture(data_frame, [])
 
-    # # JOB: Write extracted application information to database
-    # if write_to_db:
-    #     collection.add_many(df['_id'].values, 'application', df['nn_applications'].values)
+    # JOB: Decode extracted architecture
+    df = nn_decoding(df, type_list, 'nn_type')
 
-    # Specify list of neural network types to consider
-    type_list = ['feed_forward_type', 'conv_type', 'recurrent_type']
+    # JOB: Write extracted application information to database
+    print('Writing extracted architecture information into database ...')
+    if write_to_db:
+        collection.add_many(df['_id'].values, 'nn_type', df['nn_type'].values)
 
     # Print counts of neural network types
     # print(df[type_list].sum())
@@ -409,12 +415,11 @@ def train_test_nn_type(data_frame):
     # JOB: Filter for data with readme
 
     # Filter data for repositories with non-empty, English readmes
-    df_learn = df[(df['readme_language'] == 'English') & (df['readme_text'] != None)][
-        ['readme_text', *type_list]]
+    df_learn = df[(df['readme_language'] == 'English') & (df['readme_text'] != None)]
 
     # Apply text preprocessing and split into training and test data
     print('Preprocessing data ...')
-    X_train, X_test, y_train, y_test, count_vectorizer, tfidf_transformer = preprocess_data(df_learn)
+    X_train, X_test, y_train, y_test, count_vectorizer, tfidf_transformer = preprocess_data(df_learn, type_list)
 
     print('Number of repositories: %d' % df_learn.shape[0])
 
@@ -435,25 +440,45 @@ def train_test_nn_type(data_frame):
 
     print('Model test duration: %g' % round(end_time - begin_time, 2))
 
+    # JOB: Apply model to repositories without application information
     # Filter for test data without labels
     test_data = data_frame[
         (data_frame['readme_language'] == 'English') &
         (data_frame['readme_text'] != '') &
         (data_frame['readme_text'] != None) &
-        ~(data_frame['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) &
-        ~(data_frame['py_data'].apply(func=lambda x: x.get('model_file_found')))]
+        (~data_frame.index.isin(df_learn.index))]
 
-    print('Applying model to test data ...')
+    # # Filter for test data without labels
+    # test_data = data_frame[
+    #     (data_frame['readme_language'] == 'English') &
+    #     (data_frame['readme_text'] != '') &
+    #     (data_frame['readme_text'] != None) &
+    #     ~(data_frame['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) &
+    #     ~(data_frame['py_data'].apply(func=lambda x: x.get('model_file_found')))]
+
+    print('Applying model to data ...')
     begin_time = time.time()
-    result_df = apply_model(clf, count_vectorizer, tfidf_transformer, test_data.sample(10), type_list)
+    result_df = apply_model(clf, count_vectorizer, tfidf_transformer, test_data, type_list)
     end_time = time.time()
     print('Prediction time: %g seconds' % round((end_time - begin_time), 2))
 
-    print(tabulate(result_df, headers='keys',
+    print(tabulate(result_df[:10], headers='keys',
                    tablefmt='psql', showindex=True))
 
     program_end_time = time.time()
     print('Program run time: %g' % round(program_end_time - program_start_time, 2))
+
+    print('Decoding predicted values ...')
+    result_df_decoded = nn_decoding(result_df, type_list, 'nn_type')
+
+    print(tabulate(result_df_decoded[:10], headers='keys',
+                   tablefmt='psql', showindex=True))
+
+    # JOB: Write predictions into database
+    print('Writing predictions into database ...')
+    if write_to_db:
+        collection.add_many(result_df_decoded['_id'].values, 'suggested_type',
+                            result_df_decoded['nn_type'].values)
 
 
 def train_test_nn_application(data_frame, write_to_db=False):
@@ -494,7 +519,7 @@ def train_test_nn_application(data_frame, write_to_db=False):
 
     # Apply text preprocessing and split into training and test data
     print('Preprocessing data ...')
-    X_train, X_test, y_train, y_test, count_vectorizer, tfidf_transfomer = preprocess_data(df_learn)
+    X_train, X_test, y_train, y_test, count_vectorizer, tfidf_transfomer = preprocess_data(df_learn, topic_list)
 
     # JOB: Train model
     print('Training model ...')
@@ -511,6 +536,7 @@ def train_test_nn_application(data_frame, write_to_db=False):
     program_end_time = time.time()
     print('Program execution duration: %g' % round(program_end_time - program_start_time, 2))
 
+    # JOB: Apply model to repositories without application information
     # Filter for test data without labels
     test_data = data_frame[
         (data_frame['readme_language'] == 'English') &
