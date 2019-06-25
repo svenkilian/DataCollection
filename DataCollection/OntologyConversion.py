@@ -59,6 +59,18 @@ def create_rdf_from_df(data_frame, output_name):
     g.add((tmp, vs.term_status, Literal('stable')))
     g.add((tmp, cc.licence, URIRef('https://creativecommons.org/licenses/by-nc-sa/4.0/')))
 
+    # JOB: Add class labels
+    g.add((ontologyURI.Neural_Network, RDFS.label, Literal('Neural Network')))  # Add model name
+
+    g.add((ontologyURI.Feed_Forward_Neural_Network, RDFS.label, Literal('Feed Forward Neural Network')))  # Add model name
+    g.add((ontologyURI.Feed_Forward_Neural_Network, RDFS.subClassOf, ontologyURI.Neural_Network))
+
+    g.add((ontologyURI.Convolutional_Neural_Network, RDFS.label, Literal('Convolutional Neural Network')))  # Add model name
+    g.add((ontologyURI.Convolutional_Neural_Network, RDFS.subClassOf, ontologyURI.Neural_Network))
+
+    g.add((ontologyURI.Recurrent_Neural_Network, RDFS.label, Literal('Recurrent Neural Network')))  # Add model name
+    g.add((ontologyURI.Recurrent_Neural_Network, RDFS.subClassOf, ontologyURI.Neural_Network))
+
     # JOB: Iterate through repositories in data base
     for idx, row in tqdm(df_github.iterrows(), total=df_github.shape[0]):
         # Set model name (owner/repo) and owner
@@ -70,17 +82,17 @@ def create_rdf_from_df(data_frame, output_name):
         if row.get('nn_type') is not np.nan:
             if 'feed_forward_type' in row.get('nn_type'):
                 g.add((nn, RDF.type, ontologyURI.Feed_Forward_Neural_Network))  # Add model type
-                print('Added Feed_Forward_Neural_Network')
+                # print('Added Feed_Forward_Neural_Network')
             if 'conv_type' in row.get('nn_type'):
                 g.add((nn, RDF.type, ontologyURI.Convolutional_Neural_Network))  # Add model type
-                print('Added Convolutional_Neural_Network')
+                # print('Added Convolutional_Neural_Network')
             if 'recurrent_type' in row.get('nn_type'):
                 g.add((nn, RDF.type, ontologyURI.Recurrent_Neural_Network))  # Add model type
-                print('Added Recurrent_Neural_Network')
+                # print('Added Recurrent_Neural_Network')
         else:
             # If architecture information is not available, set to default
             g.add((nn, RDF.type, ontologyURI.Neural_Network))  # Add model type
-        g.add((nn, RDF.type, ontologyURI.Neural_Network))  # Add model type
+        # g.add((nn, RDF.type, ontologyURI.Neural_Network))  # Add model type
         g.add((nn, RDFS.label, Literal(modelName)))  # Add model name
 
         # Add description
@@ -238,6 +250,6 @@ if __name__ == '__main__':
     # print(tabulate(df_github.loc[[12852]], headers='keys', tablefmt='psql', showindex=True))
     # print(type(df_github.loc[12852, 'reference_list']))
 
-    # create_rdf_from_df(df_github, 'graph_data')  # TODO: Uncomment
+    create_rdf_from_df(df_github, 'graph_data')
     face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
     create_rdf_from_df(df_github.sample(1000).append(face_recognition_repo), 'graph_data_small')
