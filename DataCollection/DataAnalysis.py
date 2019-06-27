@@ -37,6 +37,11 @@ def get_stats(data_frame):
     data_frame['has_architecture_info'] = data_frame.apply(
         func=lambda x: x.get('extracted_architecture') or x.get('model_file_found'), axis=1)
     data_frame['has_topics'] = data_frame['repo_tags'].apply(func=lambda x: len(x) is not 0 if x is not None else False)
+    data_frame['has_readme'] = data_frame.apply(func=lambda row: (row['readme_text'] != None) & (
+            row['readme_text'] != ''), axis=1)
+    data_frame['has_english_readme'] = data_frame.apply(
+        func=lambda row: (row['readme_language'] == 'English') & (row['readme_text'] != None) & (
+                row['readme_text'] != ''), axis=1)
 
     # Define year and month for grouping
     per_year = data_frame.repo_created_at.dt.to_period('Y')
@@ -52,6 +57,18 @@ def get_stats(data_frame):
     repo_count_per_month = data_frame.groupby(per_month).size().reset_index(
         name='Counts of repos').set_index('repo_created_at')
     print(repo_count_per_month)
+    print(2 * '\n')
+
+    # Readme analysis
+    readme_count = data_frame.groupby(['has_readme']).size().reset_index(name='Counts of repos').set_index(
+        'has_readme')
+    print(readme_count)
+    print(2 * '\n')
+
+    english_readme_count = data_frame.groupby(['has_english_readme']).size().reset_index(
+        name='Counts of repos').set_index(
+        'has_english_readme')
+    print(english_readme_count)
     print(2 * '\n')
 
     # Keras used view
@@ -221,7 +238,8 @@ if __name__ == '__main__':
     # JOB: Load data from file
     print('Loading data ...')
     data_frame = load_data_to_df('DataCollection/data/data.json', download_data=False)
-    train_test_nn_type(data_frame, write_to_db=True)
+    get_stats(data_frame)
+    # train_test_nn_type(data_frame, write_to_db=True)
     # train_test_nn_application(data_frame, write_to_db=False)
     # model = train_test_doc2vec_nn_application(data_frame, 'nn_type', get_nn_type_from_architecture)
     # model = train_test_doc2vec_nn_application(data_frame, 'nn_application', nn_application_encoding)

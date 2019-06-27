@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 from tabulate import tabulate
 import logging
+import html5lib
 
 logging.basicConfig(level=logging.INFO)
 
@@ -30,6 +31,10 @@ def create_rdf_from_df(data_frame, output_name):
     # JOB: Define Ontology and namespaces
     output = os.path.join(ROOT_DIR, 'DataCollection/data/' + output_name)  # Specify output name
     g = Graph()  # Instantiate graph
+
+    # Parse neural network ontology
+    g.parse('http://people.aifb.kit.edu/ns1888/nno/nno.owl', format='xml')
+
     ontology = 'https://w3id.org/nno/ontology#'  # Specify ontology locations
     base = 'https://w3id.org/nno/data#'  # Specify base
 
@@ -250,6 +255,6 @@ if __name__ == '__main__':
     # print(tabulate(df_github.loc[[12852]], headers='keys', tablefmt='psql', showindex=True))
     # print(type(df_github.loc[12852, 'reference_list']))
 
-    create_rdf_from_df(df_github, 'graph_data')
+    # create_rdf_from_df(df_github, 'graph_data')
     face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
     create_rdf_from_df(df_github.sample(1000).append(face_recognition_repo), 'graph_data_small')
