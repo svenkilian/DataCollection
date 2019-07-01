@@ -255,6 +255,6 @@ if __name__ == '__main__':
     # print(tabulate(df_github.loc[[12852]], headers='keys', tablefmt='psql', showindex=True))
     # print(type(df_github.loc[12852, 'reference_list']))
 
-    # create_rdf_from_df(df_github, 'graph_data')
+    create_rdf_from_df(df_github, 'graph_data')
     face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
     create_rdf_from_df(df_github.sample(1000).append(face_recognition_repo), 'graph_data_small')
