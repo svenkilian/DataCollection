@@ -64,18 +64,6 @@ def create_rdf_from_df(data_frame, output_name):
     g.add((tmp, vs.term_status, Literal('stable')))
     g.add((tmp, cc.licence, URIRef('https://creativecommons.org/licenses/by-nc-sa/4.0/')))
 
-    # JOB: Add class labels
-    g.add((ontologyURI.Neural_Network, RDFS.label, Literal('Neural Network')))  # Add model name
-
-    g.add((ontologyURI.Feed_Forward_Neural_Network, RDFS.label, Literal('Feed Forward Neural Network')))  # Add model name
-    g.add((ontologyURI.Feed_Forward_Neural_Network, RDFS.subClassOf, ontologyURI.Neural_Network))
-
-    g.add((ontologyURI.Convolutional_Neural_Network, RDFS.label, Literal('Convolutional Neural Network')))  # Add model name
-    g.add((ontologyURI.Convolutional_Neural_Network, RDFS.subClassOf, ontologyURI.Neural_Network))
-
-    g.add((ontologyURI.Recurrent_Neural_Network, RDFS.label, Literal('Recurrent Neural Network')))  # Add model name
-    g.add((ontologyURI.Recurrent_Neural_Network, RDFS.subClassOf, ontologyURI.Neural_Network))
-
     # JOB: Iterate through repositories in data base
     for idx, row in tqdm(df_github.iterrows(), total=df_github.shape[0]):
         # Set model name (owner/repo) and owner
@@ -150,13 +138,13 @@ def create_rdf_from_df(data_frame, output_name):
                 g.add((nn, RDFS.seeAlso, URIRef(ref)))
 
         # Determine whether architecture information exists
-        has_architecture = (row['h5_data'].get('extracted_architecture') is not None) or (
-                row['py_data'].get('model_file_found') is not None)
+        has_architecture = (row['h5_data'].get('extracted_architecture')) or (
+            row['py_data'].get('model_file_found'))
 
         # Determine source of architecture information
-        if row['h5_data'].get('extracted_architecture') is not None:
+        if row['h5_data'].get('extracted_architecture'):
             data_source = row['h5_data']
-        elif row['py_data'].get('model_file_found') is not None:
+        elif row['py_data'].get('model_file_found'):
             data_source = row['py_data']
         else:
             data_source = None
@@ -170,6 +158,7 @@ def create_rdf_from_df(data_frame, output_name):
 
                 layer_URI = URIRef(base + row['repo_full_name'] + '_' + layer_name.lower())
                 layer_type_URI = URIRef(ontology + layer_type)
+                print(layer_type)  # TODO: REMOVE
 
                 g.add((layer_URI, RDF.type, layer_type_URI))
                 g.add((layer_URI, RDFS.label, Literal(layer_name)))
@@ -187,7 +176,9 @@ def create_rdf_from_df(data_frame, output_name):
                 # Add activation function
                 if layer.get('activation_function') is not None:
                     activation_function_full_name = layer.get('activation_function')
-                    activation_function = activation_function_full_name.replace(' ', '_').lower()
+                    activation_function = activation_function_full_name.replace(' ', '_').replace('"', '').lower()
+                    if activation_function == 'softmaxifclasscount>2elsesigmoid':  # Handle exception
+                        activation_function = 'softmax'
                 else:
                     activation_function_full_name = 'Linear'
                     activation_function = activation_function_full_name.lower()
@@ -195,8 +186,8 @@ def create_rdf_from_df(data_frame, output_name):
                 activation_function_URI = URIRef(ontology + activation_function)
                 g.add((layer_URI, ontologyURI.hasActivationFunction, activation_function_URI))
 
-                # Add activation function name
-                g.add((activation_function_URI, RDFS.label, Literal(activation_function_full_name)))
+                # # Add activation function name
+                # g.add((activation_function_URI, RDFS.label, Literal(activation_function_full_name)))
 
                 # Connect layer to NN
                 g.add((nn, ontologyURI.hasLayer, layer_URI))
@@ -221,11 +212,51 @@ def create_rdf_from_df(data_frame, output_name):
                 # Add optimizer name
                 g.add((optimizer_URI, RDFS.label, Literal(get_optimizer_name(optimizer_full_name))))
 
+    g = filter_graph(g)
     # Save to file
     print('Saving file to {}'.format(output))
     g.serialize(destination='{}.nt'.format(output), format='nt')
     g.serialize(destination='{}.owl'.format(output), format='pretty-xml')
     print('Successfully saved files.')
+
+
+def filter_graph(graph):
+    ontology = 'https://w3id.org/nno/ontology#'  # Specify ontology locations
+    ontologyURI = Namespace(ontology)  # Create ontology namespace
+    dc = Namespace('http://purl.org/dc/terms/')
+    owl = Namespace('http://www.w3.org/2002/07/owl#')
+    doap = Namespace('http://usefulinc.com/ns/doap#')
+
+    predicate_deletion_set = {
+        ontologyURI.hasReadme,
+        ontologyURI.hasRepositoryLink,
+        dc.description,
+        dc.creator,
+        dc.modified,
+        dc.created,
+        dc.publisher,
+        doap.category,
+        ontologyURI.stars,
+        dc.license,
+        dc.references,
+        RDFS.seeAlso,
+        RDFS.label,
+        RDFS.comment,
+        ontologyURI.hasLayerSequence,
+        ontologyURI.hasNeuron
+    }
+
+    object_deletion_set = {
+        owl.Class
+    }
+
+    for predicate in predicate_deletion_set:
+        graph.remove((None, predicate, None))
+
+    for obj in object_deletion_set:
+        graph.remove((None, None, obj))
+
+    return graph
 
 
 if __name__ == '__main__':
@@ -255,6 +286,12 @@ if __name__ == '__main__':
     # print(tabulate(df_github.loc[[12852]], headers='keys', tablefmt='psql', showindex=True))
     # print(type(df_github.loc[12852, 'reference_list']))
 
-    # create_rdf_from_df(df_github, 'graph_data')
-    face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
-    create_rdf_from_df(df_github.sample(1000).append(face_recognition_repo), 'graph_data_small')
+    # full_graph = create_rdf_from_df(df_github, 'graph_data')
+    # face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
+    # small_graph = create_rdf_from_df(df_github.sample(5000).append(face_recognition_repo), 'graph_data_small')
+
+    # JOB: Filter by repositories with architecture information
+    architecture_data = df_github[(df_github['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
+        df_github['py_data'].apply(func=lambda x: x.get('model_file_found')))]
+
+    create_rdf_from_df(architecture_data, 'graph_architecture')

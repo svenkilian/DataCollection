@@ -1,27 +1,34 @@
+'''
+This module provides methods to obtain RDF graph embeddings.
+'''
+
 import random
 import sys
 import time
 import gensim
 import os
+
+from gensim.models import KeyedVectors
+
 from config import ROOT_DIR
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
-def random_n_walk_uniform(triples, entity, walks, path_depth):
+def random_n_walk_uniform(triples, entity, n_walks, path_depth):
     """
-    Create random walks
+    Creates n_walks random walks of depth path_depth starting from the specified entity.
 
+    :param entity: Entity to start walk from
     :param triples: Triple dict
-    :param n:
-    :param walks: Number of random walks
+    :param n_walks: Number of random walks
     :param path_depth: Depth of random walk
     :return:
     """
 
     path = []
 
-    for k in range(walks):
+    for k in range(n_walks):
         walk = random_walk_uniform(triples, entity, path_depth)
         path.append(walk)
 
@@ -30,7 +37,7 @@ def random_n_walk_uniform(triples, entity, walks, path_depth):
 
 def add_triple(net, source, target, edge):
     """
-    Adds triple to dictionary
+    Adds triple to dictionary.
 
     :param net: Dictionary
     :param source: Subject
@@ -129,10 +136,18 @@ def preprocess(fname):
     return triples
 
 
-if __name__ == '__main__':
-    # Set directory for input data and file location
-    data_dir = os.path.join(ROOT_DIR, 'DataCollection/data')
-    file_location = os.path.join(data_dir, 'graph_data_small.nt')
+def create_embedding(graph_file_name):
+    """
+    Creates Skip-Gram embedding from RDF graph by first parsing the graph to sentences using random graph walks
+    and then training a word2vec language model.
+
+    :param graph_file_name: Name of file containing RDF graph
+    :return:
+    """
+
+    # Set directory for input graph_file_name and file location
+    data_dir = os.path.join(ROOT_DIR, 'DataCollection/graph_file_name')
+    file_location = os.path.join(data_dir, graph_file_name)
 
     # Create triples from file
     triples = preprocess(file_location)
@@ -144,11 +159,11 @@ if __name__ == '__main__':
     #     print(entity)
 
     vocabulary = entities
-    print('\n\nVocabulary length: %d' % len(vocabulary))
+    print('\n\nNumber of entities: %d' % len(vocabulary))
 
     # Specify number of walks and path depth
-    walks = 80
-    path_depth = 6
+    walks = 10
+    path_depth = 4
 
     # print('Entity: %s' % entities[2])
 
@@ -178,28 +193,68 @@ if __name__ == '__main__':
 
     print('Number of sentences: %d' % len(sentences))
 
-    # for sentence in sentences:
-    #     print(sentence)
+    for sentence in sentences[:0]:
+        print(sentence)
 
     elapsed_time = time.time() - start_time
     print('Time elapsed to generate features:', time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
 
     # sg Skip-Gram
-    print("start sg 15")
-    model = gensim.models.Word2Vec(size=10, workers=6, window=6, sg=1, negative=15, iter=20)
+    start_time = time.time()
+    print('\nStarting SG15 ...')
+    model = gensim.models.Word2Vec(size=20, workers=6, window=10, sg=1, negative=15, iter=30)
     model.build_vocab(sentences)
     total_examples = model.corpus_count
-    print('Vocabulary size: ', len(model.wv.vocab))
-    model.train(sentences=sentences, total_examples=total_examples, epochs=20)
+    print('Vocabulary size: %d' % len(model.wv.vocab))
+
+    print('\nTraining embedding model ...')
+    model.train(sentences=sentences, total_examples=total_examples, epochs=30)
+    end_time = time.time()
+    print('Time elapsed to train embedding:', time.strftime("%H:%M:%S", time.gmtime(end_time - start_time)))
+
     # sg/cbow features iterations window negative hops random walks
+
+    print('\nSaving embedding model ...')
     model.save(os.path.join(data_dir, 'SG_15'))
     vectors = model.wv
-    vectors.save_word2vec_format(os.path.join(data_dir, 'FT_10.txt'), binary=False)
+
+    print('\nSaving vectors ...')
+    vectors.save_word2vec_format(os.path.join(data_dir, 'SG_15.txt'), binary=False)
+
+
+def load_model_and_vectors(model_name):
+    """
+    Loads pre-trained word2vec model and word vectors.
+
+    :param model_name: Name of model to load
+    :return: Model, vocabulary
+    """
+    data_dir = os.path.join(ROOT_DIR, 'DataCollection/data')
+    file_location = os.path.join(data_dir, model_name)
+    model = gensim.models.Word2Vec.load(file_location)
+    vocabulary = KeyedVectors.load_word2vec_format(file_location + '.txt', binary=False)
+
+    return model, vocabulary
+
+
+if __name__ == '__main__':
+    create_embedding('graph_architecture.nt')
+
+    print('Loading pre-trained model:')
+    trained_model, vectors = load_model_and_vectors('SG_15')
+
+    print('Testing most similar: \n')
+    print('<https://w3id.org/nno/data#danidb/sdcnd-simulator-autopilot>')
+    most_similar_list = trained_model.most_similar(
+        positive=['<https://w3id.org/nno/data#danidb/sdcnd-simulator-autopilot>'], topn=10)
+
+    for item in most_similar_list:
+        print(item)
 
     sys.exit(0)
 
     # fasttext 500
-    print("start fast 10")
+    print("Starting fast 10 ...")
     modelf = gensim.models.FastText(size=10, workers=5, window=10, sg=1, negative=15, iter=30)
     modelf.build_vocab(sentences)
     # print("vocabulary: ",len(model.wv.vocab))
