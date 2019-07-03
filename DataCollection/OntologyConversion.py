@@ -64,6 +64,45 @@ def create_rdf_from_df(data_frame, output_name):
     g.add((tmp, vs.term_status, Literal('stable')))
     g.add((tmp, cc.licence, URIRef('https://creativecommons.org/licenses/by-nc-sa/4.0/')))
 
+    # JOB: List all defined activation functions
+    activation_functions = g.subjects(RDF.type, URIRef(ontology + 'Activation_Function'))
+    activation_functions_set = set()
+
+    for func in activation_functions:
+        activation_functions_set.add(str(func))
+
+    for item in activation_functions_set:
+        pass
+        # print(item)
+
+    # JOB: List all defined optimizers
+    optimizers = g.subjects(RDF.type, URIRef(ontology + 'Optimizer'))
+    optmizers_set = set()
+
+    for opt in optimizers:
+        optmizers_set.add(str(opt))
+
+    # print('\nOptimizers: ')
+    for item in optmizers_set:
+        pass
+        # print(item)
+
+    # JOB: List all regression loss functions
+    loss_funtions_regr = g.subjects(RDF.type, URIRef(ontology + 'Regressive_Loss'))
+    loss_funtions_class = g.subjects(RDF.type, URIRef(ontology + 'Classification_Loss'))
+    loss_functions_set = set()
+
+    for loss in loss_funtions_regr:
+        loss_functions_set.add(str(loss))
+
+    for loss in loss_funtions_class:
+        loss_functions_set.add(str(loss))
+
+    # print('\nLoss functions: ')
+    for item in loss_functions_set:
+        pass
+        # print(item)
+
     # JOB: Iterate through repositories in data base
     for idx, row in tqdm(df_github.iterrows(), total=df_github.shape[0]):
         # Set model name (owner/repo) and owner
@@ -149,6 +188,8 @@ def create_rdf_from_df(data_frame, output_name):
         else:
             data_source = None
 
+        # Query all defined named activation functions from ontology schmema
+
         # In case architecture information exists, add to graph
         if has_architecture and data_source.get('model_layers') is not None:
             for layer_id, layer in enumerate(data_source.get('model_layers').values()):
@@ -156,22 +197,21 @@ def create_rdf_from_df(data_frame, output_name):
                 layer_type = layer.get('layer_type')
                 layer_name = layer.get('layer_name')
 
+                if layer_type == '':
+                    layer_type = 'Unknown'
+
                 layer_URI = URIRef(base + row['repo_full_name'] + '_' + layer_name.lower())
                 layer_type_URI = URIRef(ontology + layer_type)
-                print(layer_type)  # TODO: REMOVE
 
                 g.add((layer_URI, RDF.type, layer_type_URI))
                 g.add((layer_URI, RDFS.label, Literal(layer_name)))
-
-                # Add name for layer type
-                g.add((layer_type_URI, RDFS.label, Literal(get_layer_type_name(layer_type))))
 
                 # Define layer sequence
                 g.add((layer_URI, ontologyURI.hasLayerSequence, Literal(layer_id + 1)))
 
                 # Add number of neurons
                 n_neurons = layer.get('nr_neurons')
-                g.add((layer_URI, ontologyURI.hasNeuron, Literal(n_neurons)))
+                g.add((layer_URI, ontologyURI.hasNeurons, Literal(n_neurons)))
 
                 # Add activation function
                 if layer.get('activation_function') is not None:
@@ -183,8 +223,25 @@ def create_rdf_from_df(data_frame, output_name):
                     activation_function_full_name = 'Linear'
                     activation_function = activation_function_full_name.lower()
 
+                substitution_dict = {
+                    'rectified_linear_unit': 'relu',
+                    'exponential_linear_unit': 'elu',
+                    'scaled_exponential_linear_unit': 'selu',
+                    'hyperbolic_tangent': 'tanh',
+                }
+
+                # Substitute activation function names
+                if activation_function in substitution_dict.keys():
+                    activation_function = substitution_dict.get(activation_function)
+
+                # Assign URI
                 activation_function_URI = URIRef(ontology + activation_function)
-                g.add((layer_URI, ontologyURI.hasActivationFunction, activation_function_URI))
+
+                if str(activation_function_URI) in activation_functions_set:
+                    g.add((layer_URI, ontologyURI.hasActivationFunction, activation_function_URI))
+                else:
+                    pass
+                    # print('%s is not in set.' % activation_function_URI)
 
                 # # Add activation function name
                 # g.add((activation_function_URI, RDFS.label, Literal(activation_function_full_name)))
@@ -200,14 +257,23 @@ def create_rdf_from_df(data_frame, output_name):
                 g.add((nn, ontologyURI.hasLossFunction, loss_function_URI))
 
                 # Add loss function name
-                g.add((loss_function_URI, RDFS.label, Literal(get_loss_function_name(loss_function_full_name))))
+                if str(loss_function_URI) in loss_functions_set:
+                    g.add((loss_function_URI, RDFS.label, Literal(get_loss_function_name(loss_function_full_name))))
+                else:
+                    pass
+                    # print('%s is not in set' % loss_function_URI)
 
             # Add optimizer:
             if row['h5_data'].get('optimizer') is not None:
                 optimizer_full_name = row['h5_data'].get('optimizer')
                 optimizer = optimizer_full_name.replace(' ', '_').lower()
                 optimizer_URI = URIRef(ontology + optimizer)
-                g.add((nn, ontologyURI.hasOptimizer, optimizer_URI))
+
+                if str(optimizer_URI) in optmizers_set:
+                    g.add((nn, ontologyURI.hasOptimizer, optimizer_URI))
+                else:
+                    pass
+                    # print('Optimizer %s is not in set.' % optimizer_URI)
 
                 # Add optimizer name
                 g.add((optimizer_URI, RDFS.label, Literal(get_optimizer_name(optimizer_full_name))))
@@ -294,4 +360,4 @@ if __name__ == '__main__':
     architecture_data = df_github[(df_github['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
         df_github['py_data'].apply(func=lambda x: x.get('model_file_found')))]
 
-    create_rdf_from_df(architecture_data, 'graph_architecture')
+    create_rdf_from_df(architecture_data.sample(6000), 'graph_architecture')

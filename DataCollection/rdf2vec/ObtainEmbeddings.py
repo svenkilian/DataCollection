@@ -9,6 +9,7 @@ import gensim
 import os
 
 from gensim.models import KeyedVectors
+from tqdm import tqdm
 
 from config import ROOT_DIR
 
@@ -146,7 +147,7 @@ def create_embedding(graph_file_name):
     """
 
     # Set directory for input graph_file_name and file location
-    data_dir = os.path.join(ROOT_DIR, 'DataCollection/graph_file_name')
+    data_dir = os.path.join(ROOT_DIR, 'DataCollection/data')
     file_location = os.path.join(data_dir, graph_file_name)
 
     # Create triples from file
@@ -163,7 +164,7 @@ def create_embedding(graph_file_name):
 
     # Specify number of walks and path depth
     walks = 10
-    path_depth = 4
+    path_depth = 3
 
     # print('Entity: %s' % entities[2])
 
@@ -183,8 +184,7 @@ def create_embedding(graph_file_name):
 
     # Initialize sentences array
     sentences = []
-
-    for word in vocabulary:
+    for word in tqdm(vocabulary, total=len(vocabulary)):
         sentence = random_n_walk_uniform(triples, word, walks, path_depth)
         if sentence not in sentences:
             sentences.extend(sentence)
@@ -238,15 +238,16 @@ def load_model_and_vectors(model_name):
 
 
 if __name__ == '__main__':
-    create_embedding('graph_architecture.nt')
+
+    # create_embedding('graph_architecture.nt')
 
     print('Loading pre-trained model:')
     trained_model, vectors = load_model_and_vectors('SG_15')
 
     print('Testing most similar: \n')
-    print('<https://w3id.org/nno/data#danidb/sdcnd-simulator-autopilot>')
+    print('<https://w3id.org/nno/data#hepip/CarND-Behavioral-Cloning-P3>')
     most_similar_list = trained_model.most_similar(
-        positive=['<https://w3id.org/nno/data#danidb/sdcnd-simulator-autopilot>'], topn=10)
+        positive=['<https://w3id.org/nno/data#hepip/CarND-Behavioral-Cloning-P3>'], topn=10)
 
     for item in most_similar_list:
         print(item)
