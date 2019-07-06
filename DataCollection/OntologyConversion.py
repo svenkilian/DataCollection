@@ -19,7 +19,7 @@ import html5lib
 logging.basicConfig(level=logging.INFO)
 
 
-def create_rdf_from_df(data_frame, output_name):
+def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
     """
     Main method to be run on execution of file.
 
@@ -278,7 +278,8 @@ def create_rdf_from_df(data_frame, output_name):
                 # Add optimizer name
                 g.add((optimizer_URI, RDFS.label, Literal(get_optimizer_name(optimizer_full_name))))
 
-    g = filter_graph(g)
+    if architecture_filter:
+        g = filter_graph(g)
     # Save to file
     print('Saving file to {}'.format(output))
     g.serialize(destination='{}.nt'.format(output), format='nt')
@@ -360,4 +361,4 @@ if __name__ == '__main__':
     architecture_data = df_github[(df_github['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
         df_github['py_data'].apply(func=lambda x: x.get('model_file_found')))]
 
-    create_rdf_from_df(architecture_data.sample(6000), 'graph_architecture')
+    create_rdf_from_df(architecture_data, 'graph_architecture', architecture_filter=True)

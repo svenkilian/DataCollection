@@ -237,6 +237,14 @@ def load_model_and_vectors(model_name):
     return model, vocabulary
 
 
+def get_most_similar(uri, top_n):
+    print('\nMost similar to: %s' % uri)
+    most_similar_list = trained_model.most_similar(
+        positive=[uri], topn=top_n)
+    for item in most_similar_list:
+        print(item)
+
+
 if __name__ == '__main__':
 
     # create_embedding('graph_architecture.nt')
@@ -245,12 +253,21 @@ if __name__ == '__main__':
     trained_model, vectors = load_model_and_vectors('SG_15')
 
     print('Testing most similar: \n')
-    print('<https://w3id.org/nno/data#hepip/CarND-Behavioral-Cloning-P3>')
-    most_similar_list = trained_model.most_similar(
-        positive=['<https://w3id.org/nno/data#hepip/CarND-Behavioral-Cloning-P3>'], topn=10)
 
-    for item in most_similar_list:
-        print(item)
+    prefix = '<https://w3id.org/nno/data#'
+
+    test_repos = ['hepip/CarND-Behavioral-Cloning-P3',
+                  'erikshestopal/CarND-Behavioral-Cloning-P3',
+                  'Bikashrumey/Behavioral-Cloning-CNN-PythonML',
+                  'xypan1232/IPMiner']
+
+    test_uris = [prefix + repo_name + '>' for repo_name in test_repos]
+
+    for uri in test_uris:
+        if uri in trained_model.wv:
+            get_most_similar(uri, 500)
+        else:
+            print('\n%s not in vocabulary.' % uri)
 
     sys.exit(0)
 
