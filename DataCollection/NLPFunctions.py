@@ -269,6 +269,14 @@ def perform_lda(data_frame):
 
 
 def read_corpus(readme_text_series, tokens_only=False):
+    """
+    Generator function for text pre-processing and tokenization.
+
+    :param readme_text_series: Pandas series containing readme strings.
+    :param tokens_only: If true, only return tokenized document, otherwise return tagged document for training embedding
+    :return:
+    """
+
     for i, document in readme_text_series.iteritems():
         if tokens_only:
             yield gensim.utils.simple_preprocess(document)

@@ -82,10 +82,10 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
     for opt in optimizers:
         optmizers_set.add(str(opt))
 
-    # print('\nOptimizers: ')
+    print('\nOptimizers: ')
     for item in optmizers_set:
         pass
-        # print(item)
+        print(item)
 
     # JOB: List all regression loss functions
     loss_funtions_regr = g.subjects(RDF.type, URIRef(ontology + 'Regressive_Loss'))
@@ -95,13 +95,15 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
     for loss in loss_funtions_regr:
         loss_functions_set.add(str(loss))
 
+    print('\n\n')
+
     for loss in loss_funtions_class:
         loss_functions_set.add(str(loss))
 
-    # print('\nLoss functions: ')
+    print('\nLoss functions: ')
     for item in loss_functions_set:
         pass
-        # print(item)
+        print(item)
 
     # JOB: Iterate through repositories in data base
     for idx, row in tqdm(df_github.iterrows(), total=df_github.shape[0]):
@@ -250,22 +252,27 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
                 g.add((nn, ontologyURI.hasLayer, layer_URI))
 
             # Add loss function
-            if row['h5_data'].get('loss_function') is not None:
-                loss_function_full_name = row['h5_data'].get('loss_function')
+            if data_source.get('loss_function'):
+                loss_function_full_name = data_source.get('loss_function')
                 loss_function = loss_function_full_name.replace(' ', '_').lower()
+
+                # Add mean squared error type
+                if loss_function == 'mse':
+                    loss_function = 'mean_squared_error'
+
                 loss_function_URI = URIRef(ontology + loss_function)
-                g.add((nn, ontologyURI.hasLossFunction, loss_function_URI))
 
                 # Add loss function name
                 if str(loss_function_URI) in loss_functions_set:
-                    g.add((loss_function_URI, RDFS.label, Literal(get_loss_function_name(loss_function_full_name))))
+                    g.add((nn, ontologyURI.hasLossFunction, loss_function_URI))
                 else:
                     pass
-                    # print('%s is not in set' % loss_function_URI)
+                    print('%s is not in set' % loss_function_URI)
+                    # g.add((loss_function_URI, RDFS.label, Literal(get_loss_function_name(loss_function_full_name))))
 
             # Add optimizer:
-            if row['h5_data'].get('optimizer') is not None:
-                optimizer_full_name = row['h5_data'].get('optimizer')
+            if data_source.get('optimizer'):
+                optimizer_full_name = data_source.get('optimizer')
                 optimizer = optimizer_full_name.replace(' ', '_').lower()
                 optimizer_URI = URIRef(ontology + optimizer)
 
@@ -273,10 +280,9 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
                     g.add((nn, ontologyURI.hasOptimizer, optimizer_URI))
                 else:
                     pass
-                    # print('Optimizer %s is not in set.' % optimizer_URI)
-
-                # Add optimizer name
-                g.add((optimizer_URI, RDFS.label, Literal(get_optimizer_name(optimizer_full_name))))
+                    print('Optimizer %s is not in set.' % optimizer_URI)
+                    # Add optimizer name
+                    # g.add((optimizer_URI, RDFS.label, Literal(get_optimizer_name(optimizer_full_name))))
 
     if architecture_filter:
         g = filter_graph(g)
@@ -354,11 +360,28 @@ if __name__ == '__main__':
     # print(type(df_github.loc[12852, 'reference_list']))
 
     # full_graph = create_rdf_from_df(df_github, 'graph_data')
-    # face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
-    # small_graph = create_rdf_from_df(df_github.sample(5000).append(face_recognition_repo), 'graph_data_small')
+
+    data_frame = df_github[(df_github['readme_language'] == 'English') & (df_github['readme_text'] != None) & (
+            (df_github['readme_text'].str.len()) > 5000) & ~(
+        df_github['repo_name'].str.contains(
+            '([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)'))].head(1000)
+
+    face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
+    traffic_sign_repo = df_github[df_github['repo_full_name'] == 'patirasam/Deep-Learning-CNN-Traffic-Sign-Classifier']
+
+    data_frame.sample(1000).append(face_recognition_repo).append(traffic_sign_repo)
+    data_frame.reset_index(inplace=True, drop=True)  # Reset index
+
+    print(data_frame.index)
+
+    # Export filtered dataframe to json
+    output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data.json')  # Specify output name
+    data_frame.to_json(output_file)
+
+    create_rdf_from_df(data_frame, 'graph_data_small_new')
 
     # JOB: Filter by repositories with architecture information
-    architecture_data = df_github[(df_github['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
-        df_github['py_data'].apply(func=lambda x: x.get('model_file_found')))]
+    # architecture_data = df_github[(df_github['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
+    #     df_github['py_data'].apply(func=lambda x: x.get('model_file_found')))]
 
-    create_rdf_from_df(architecture_data, 'graph_architecture', architecture_filter=True)
+    # create_rdf_from_df(architecture_data.sample(2).append(face_recognition_repo), 'graph_architecture', architecture_filter=True)

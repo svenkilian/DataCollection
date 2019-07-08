@@ -150,7 +150,7 @@ def nn_decoding(df, topic_list, classification_task, drop_columns=False):
     return df
 
 
-def get_nn_type_from_architecture(data_frame, type_list):
+def get_nn_type_from_architecture(data_frame, type_list=None):
     """
     Analyzes layer information to extract information about network type.
 
@@ -197,6 +197,7 @@ def get_nn_type_from_architecture(data_frame, type_list):
         'LocallyConnected1D',
         'LocallyConnected2D',
     }
+
     recurrent_layers = {
         'RNN',
         'SimpleRNN',
@@ -216,28 +217,35 @@ def get_nn_type_from_architecture(data_frame, type_list):
     data_frame['conv_type'] = pd.Series(np.empty((data_frame.shape[0])))
     data_frame['recurrent_type'] = pd.Series(np.empty((data_frame.shape[0])))
 
+    # JOB: Iterate through repositories with architecture information and classify them based on layers
     for ix, (index, repo) in enumerate(data_frame.iterrows()):
 
+        # Initialize label attribution with zeros
         is_conv_nn = 0
         is_recurrent_nn = 0
         is_feed_forward_nn = 0
         layers = []
 
+        # Determine source of architecture information (h5/.py file)
         if repo['h5_data'].get('extracted_architecture'):
             layers = repo['h5_data'].get('model_layers')
         elif repo['py_data'].get('model_file_found'):
             layers = repo['py_data'].get('model_layers')
 
+        # Extract all layer types to set
         layer_types = set([layer.get('layer_type') for layer in layers.values()])
 
+        # Check for intersections with defined layer type sets and determine whether to set label to 1
         if len(layer_types.intersection(convolutional_layers)) > 0:
             is_conv_nn = 1
         if len(layer_types.intersection(recurrent_layers)) > 0:
             is_recurrent_nn = 1
 
+        # If no defined layer type is present, default to feed forward type
         if not (is_recurrent_nn or is_conv_nn):
             is_feed_forward_nn = 1
 
+        # Insert extracted network type information into data frame
         data_frame.loc[[index], ['feed_forward_type', 'conv_type', 'recurrent_type']] = [is_feed_forward_nn, is_conv_nn,
                                                                                          is_recurrent_nn]
         print_progress(ix + 1, len(data_frame))
@@ -282,12 +290,13 @@ def train_model(X_train, y_train, clf, load_model=False):
     Trains and returns classifier.
 
     :param load_model:
-    :param clf: Classiier to train
+    :param clf: Classifier to train
     :param X_train: Features of training set
     :param y_train: Labels of training set
     :return: Trained classifier
     """
 
+    # If model needs to be retrained or trained for the first time
     if not load_model:
         classifier = ClassifierChain(clf)
         # predictions = cross_val_predict(classifier, X.astype(float), y.astype(float), cv=3, n_jobs=12,
@@ -296,28 +305,9 @@ def train_model(X_train, y_train, clf, load_model=False):
         classifier.fit(X_train.astype(float), y_train.astype(float))
         dump(classifier, os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
 
+    # If trained model can be loaded from file
     else:
         classifier = load(os.path.join(ROOT_DIR, 'DataCollection/data/models/trained_model.joblib'))
-
-    # model = Sequential()
-    # model.add(Embedding(max_words, 20, input_length=maxlen))
-    # model.add(Dropout(0.15))
-    # model.add(GlobalMaxPool1D())
-    # model.add(Dense(num_classes, activation='sigmoid'))
-    #
-    # model.compile(optimizer=Adam(0.015), loss='binary_crossentropy', metrics=['categorical_accuracy'])
-    # callbacks = [
-    #     ReduceLROnPlateau(),
-    #     EarlyStopping(patience=4),
-    #     ModelCheckpoint(filepath='model-simple.h5', save_best_only=True)
-    # ]
-    #
-    # history = model.fit(x_train, y,
-    #                     class_weight=class_weight,
-    #                     epochs=20,
-    #                     batch_size=32,
-    #                     validation_split=0.1
-    # callbacks = callbacks)
 
     return classifier
 
@@ -383,14 +373,14 @@ def train_test_nn_type(data_frame, write_to_db=False):
 
     # JOB: Extract neural network type information from architecture
     print('Extracting labels from architecture ...')
-    df = get_nn_type_from_architecture(data_frame, [])
+    df = get_nn_type_from_architecture(data_frame)
 
     # JOB: Decode extracted architecture
     df = nn_decoding(df, type_list, 'nn_type')
 
     # JOB: Write extracted application information to database
-    print('Writing extracted architecture information into database ...')
     if write_to_db:
+        print('Writing extracted architecture information into database ...')
         collection.add_many(df['_id'].values, 'nn_type', df['nn_type'].values)
 
     # Print counts of neural network types
@@ -475,8 +465,8 @@ def train_test_nn_type(data_frame, write_to_db=False):
                    tablefmt='psql', showindex=True))
 
     # JOB: Write predictions into database
-    print('Writing predictions into database ...')
     if write_to_db:
+        print('Writing predictions into database ...')
         collection.add_many(result_df_decoded['_id'].values, 'suggested_type',
                             result_df_decoded['nn_type'].values)
 
@@ -557,8 +547,8 @@ def train_test_nn_application(data_frame, write_to_db=False):
     result_df_decoded = nn_decoding(result_df, topic_list, 'nn_applications')
 
     # JOB: Write predictions into database
-    print('Writing predictions into database ...')
     if write_to_db:
+        print('Writing predictions into database ...')
         collection.add_many(result_df_decoded['_id'].values, 'suggested_application',
                             result_df_decoded['nn_applications'].values)
 
@@ -572,7 +562,7 @@ def train_test_doc2vec_nn_application(data_frame, classification_task, encoding_
     :param data_frame: Data frame containing repositories
     :return: Trained classifier
     """
-    print('Performing doc2vec classification ...')
+    print('\nPerforming doc2vec classification ...')
     # Filter repositories for non-empty English readme
     data_frame = data_frame[(data_frame['readme_language'] == 'English') & (data_frame['readme_text'] != None)]
     data_frame.reset_index(inplace=True)
@@ -590,7 +580,7 @@ def train_test_doc2vec_nn_application(data_frame, classification_task, encoding_
 
     # Train doc2vec model
     print('Performing doc2vec ...')
-    model = perform_doc2vec_embedding(data_frame['readme_text'], train_model=False)
+    model = perform_doc2vec_embedding(data_frame['readme_text'], train_model=True)
 
     print('Building text corpora ...')
     train_corpus = list(read_corpus(X_train, tokens_only=True))

@@ -1,5 +1,7 @@
 # Standalone executable module implementing experimental NLP techniques to textual information.
-
+import os
+import re
+import sys
 from collections import Counter
 from urllib.parse import urlparse
 
@@ -15,6 +17,8 @@ from tqdm import tqdm
 from Classifiers.AttributeClfs import train_test_doc2vec_nn_application, get_nn_type_from_architecture, \
     nn_application_encoding, train_test_nn_application, train_test_nn_type
 from HelperFunctions import load_data_to_df
+from NLPFunctions import read_corpus
+from config import ROOT_DIR
 
 pd.set_option('mode.chained_assignment', None)
 
@@ -196,38 +200,79 @@ def analyze_topics(data_frame):
 
 def calculate_similarities(data_frame):
     """
-    Calculates similarities between repositories.
+    Calculates similarities between repositories based on their readme file's doc2vec representation.
 
     :param data_frame: Data frame containing readme texts.
     :return:
     """
 
     # JOB: Filter repositories by repositories with non-empty English readmes with minimum length of 5000 characters
-    data_frame = data_frame[(data_frame['readme_language'] == 'English') & (data_frame['readme_text'] != None) & (
-            (data_frame['readme_text'].str.len()) > 5000) & ~(
-        data_frame['repo_name'].str.contains(
-            '([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)'))].head(1000)
-    data_frame.reset_index(inplace=True)  # Reset index
+    # data_frame = data_frame[(data_frame['readme_language'] == 'English') & (data_frame['readme_text'] != None) & (
+    #         (data_frame['readme_text'].str.len()) > 5000) & ~(
+    #     data_frame['repo_name'].str.contains(
+    #         '([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)'))].head(1000)
+    # data_frame.reset_index(inplace=True)  # Reset index
+
+    # data_frame = data_frame[(data_frame['readme_language'] == 'English') & (data_frame['readme_text'] != None)].sample(100)
+    data_frame.reset_index(inplace=True, drop=True)  # Reset index
+
+    repo_names_index = data_frame['repo_full_name'].values
+
+    # Initialize empty numpy array
+    similarity_array = np.zeros((data_frame.shape[0], data_frame.shape[0]))
 
     # JOB: Load pre-trained Doc2Vec model
     print('Loading pre-trained model ...')
     doc2vec_model = Doc2Vec.load(get_tmpfile('doc2vec_model'))
 
+    preprocessed_readmes = list(read_corpus(data_frame['readme_text'], tokens_only=True))
+    vectorized_readmes = np.empty((len(preprocessed_readmes), 20))
+
+    for i, row in enumerate(vectorized_readmes):
+        vectorized_readmes[i] = doc2vec_model.infer_vector(preprocessed_readmes[i])
+
+
+    # Load vectorized readmes from saved model
+    # vectorized_readmes = doc2vec_model.docvecs
+
     # JOB: Pair-wise comparison between repositories based on readme texts using cosine similarity
     for ix_outer, repo in tqdm(data_frame.iterrows(), total=data_frame.shape[0]):
         for ix_inner in range(ix_outer + 1, data_frame.shape[0]):
-            vec_1 = doc2vec_model.infer_vector(gensim.utils.simple_preprocess(repo['readme_text']))
-            vec_2 = doc2vec_model.infer_vector(
-                gensim.utils.simple_preprocess(data_frame.loc[[ix_inner], 'readme_text'].values[0]))
+            vec_1 = vectorized_readmes[ix_outer]
+            vec_2 = vectorized_readmes[ix_inner]
+            # vec_1 = doc2vec_model.infer_vector(gensim.utils.simple_preprocess(repo['readme_text']))
+            # vec_2 = doc2vec_model.infer_vector(
+            #     gensim.utils.simple_preprocess(data_frame.loc[[ix_inner], 'readme_text'].values[0]))
 
             # Calculate cosine similarity
             similarity = cosine_similarity(vec_1.reshape(1, -1), vec_2.reshape(1, -1))[0, 0]
+            similarity_array[ix_outer, ix_inner] = similarity
 
-            # Only consider strong similarities
-            if 0.8 < similarity < 0.9:
-                print('(%d, %d): %g' % (ix_outer, ix_inner, round(similarity, 2)))
-                print(tabulate(data_frame.loc[[ix_outer, ix_inner], ['repo_url']], tablefmt='psql', showindex=True,
-                               headers='keys'))
+            # search_words = re.compile(u'([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)')
+            #
+            # # Only consider strong similarities for console output
+            # if len(repo['readme_text']) > 1000:
+            #     if not search_words.search(repo['repo_name']):
+            #         if 0.9 < similarity < 1.0:
+            #             print('(%d, %d): %g' % (ix_outer, ix_inner, round(similarity, 2)))
+            #             print(tabulate(data_frame.loc[[ix_outer, ix_inner], ['repo_url']], tablefmt='psql', showindex=True,
+            #                            headers='keys'))
+
+    # Make matrix symmetric
+    for i in range(1, len(similarity_array)):
+        for j in range(0, 1):
+            similarity_array[i][j] = similarity_array[j][i]
+
+    print(similarity_array)
+    print(similarity_array.max())
+    print(similarity_array.min())
+
+    # Array to pandas dataframe with column and row indices
+    similarity_df = pd.DataFrame(similarity_array, index=repo_names_index, columns=repo_names_index)
+
+    # Save data frame to json
+    output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_sims.json')  # Specify output name
+    similarity_df.to_json(output_file)
 
 
 if __name__ == '__main__':
@@ -237,11 +282,14 @@ if __name__ == '__main__':
 
     # JOB: Load data from file
     print('Loading data ...')
-    data_frame = load_data_to_df('DataCollection/data/data.json', download_data=False)
-    get_stats(data_frame)
-    # train_test_nn_type(data_frame, write_to_db=True)
+    # data_frame = load_data_to_df('DataCollection/data/data.json', download_data=False)
+    data_test = load_data_to_df('DataCollection/data/filtered_data.json', download_data=False)
+    # get_stats(data_frame)
+
+    # train_test_nn_type(data_frame, write_to_db=False)
     # train_test_nn_application(data_frame, write_to_db=False)
     # model = train_test_doc2vec_nn_application(data_frame, 'nn_type', get_nn_type_from_architecture)
     # model = train_test_doc2vec_nn_application(data_frame, 'nn_application', nn_application_encoding)
+
     # Calculate repository similarities based on readme texts
-    # calculate_similarities(data_frame)
+    calculate_similarities(data_test)
