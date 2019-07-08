@@ -277,7 +277,7 @@ def read_corpus(readme_text_series, tokens_only=False):
     :return:
     """
 
-    for i, document in readme_text_series.iteritems():
+    for i, document in tqdm(readme_text_series.iteritems(), total=len(readme_text_series)):
         if tokens_only:
             yield gensim.utils.simple_preprocess(document)
         else:

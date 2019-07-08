@@ -5,6 +5,7 @@ import sys
 
 from werkzeug.urls import url_fix
 
+import DataAnalysis
 from HelperFunctions import get_loss_function_name, get_optimizer_name, get_layer_type_name, load_data_to_df
 from config import ROOT_DIR
 import os
@@ -338,7 +339,6 @@ if __name__ == '__main__':
     """
 
     # Load data from json file
-    # df_github = pd.read_json(os.path.join(ROOT_DIR, 'DataCollection/data/data.json'))
     df_github = load_data_to_df(os.path.join(ROOT_DIR, 'DataCollection/data/data.json'), download_data=False)
 
     # Print column names
@@ -364,15 +364,13 @@ if __name__ == '__main__':
     data_frame = df_github[(df_github['readme_language'] == 'English') & (df_github['readme_text'] != None) & (
             (df_github['readme_text'].str.len()) > 5000) & ~(
         df_github['repo_name'].str.contains(
-            '([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)'))].head(1000)
+            '([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)'))]
 
     face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
     traffic_sign_repo = df_github[df_github['repo_full_name'] == 'patirasam/Deep-Learning-CNN-Traffic-Sign-Classifier']
 
-    data_frame.sample(1000).append(face_recognition_repo).append(traffic_sign_repo)
+    data_frame = data_frame.sample(1000).append(face_recognition_repo).append(traffic_sign_repo)
     data_frame.reset_index(inplace=True, drop=True)  # Reset index
-
-    print(data_frame.index)
 
     # Export filtered dataframe to json
     output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data.json')  # Specify output name
@@ -385,3 +383,4 @@ if __name__ == '__main__':
     #     df_github['py_data'].apply(func=lambda x: x.get('model_file_found')))]
 
     # create_rdf_from_df(architecture_data.sample(2).append(face_recognition_repo), 'graph_architecture', architecture_filter=True)
+

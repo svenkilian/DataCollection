@@ -16,8 +16,9 @@ from tqdm import tqdm
 
 from Classifiers.AttributeClfs import train_test_doc2vec_nn_application, get_nn_type_from_architecture, \
     nn_application_encoding, train_test_nn_application, train_test_nn_type
-from HelperFunctions import load_data_to_df
+from HelperFunctions import load_data_to_df, filter_data_frame
 from NLPFunctions import read_corpus
+from scipy.stats import rankdata
 from config import ROOT_DIR
 
 pd.set_option('mode.chained_assignment', None)
@@ -213,9 +214,8 @@ def calculate_similarities(data_frame):
     #         '([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)'))].head(1000)
     # data_frame.reset_index(inplace=True)  # Reset index
 
-    # data_frame = data_frame[(data_frame['readme_language'] == 'English') & (data_frame['readme_text'] != None)].sample(100)
-    data_frame.reset_index(inplace=True, drop=True)  # Reset index
-
+    data_frame.reset_index(inplace=True, drop=True)
+    # Get repo name array
     repo_names_index = data_frame['repo_full_name'].values
 
     # Initialize empty numpy array
@@ -225,16 +225,21 @@ def calculate_similarities(data_frame):
     print('Loading pre-trained model ...')
     doc2vec_model = Doc2Vec.load(get_tmpfile('doc2vec_model'))
 
+    # Preprocess readmes
+    print('Pre-processing readmes ...')
     preprocessed_readmes = list(read_corpus(data_frame['readme_text'], tokens_only=True))
-    vectorized_readmes = np.empty((len(preprocessed_readmes), 20))
 
-    for i, row in enumerate(vectorized_readmes):
+    # Initialize empty array
+    vectorized_readmes = np.empty((len(preprocessed_readmes), 20))  # TODO: Make matrix width variable
+
+    print('Vectorizing readmes ... \n')
+    for i, row in tqdm(enumerate(vectorized_readmes), total=len(vectorized_readmes)):
         vectorized_readmes[i] = doc2vec_model.infer_vector(preprocessed_readmes[i])
-
 
     # Load vectorized readmes from saved model
     # vectorized_readmes = doc2vec_model.docvecs
 
+    print('Calculating similarities ...')
     # JOB: Pair-wise comparison between repositories based on readme texts using cosine similarity
     for ix_outer, repo in tqdm(data_frame.iterrows(), total=data_frame.shape[0]):
         for ix_inner in range(ix_outer + 1, data_frame.shape[0]):
@@ -259,20 +264,45 @@ def calculate_similarities(data_frame):
             #                            headers='keys'))
 
     # Make matrix symmetric
+    print('Adding lower triangle to similarity matrix ...')
     for i in range(1, len(similarity_array)):
-        for j in range(0, 1):
+        for j in range(0, i):
             similarity_array[i][j] = similarity_array[j][i]
 
-    print(similarity_array)
-    print(similarity_array.max())
-    print(similarity_array.min())
+    np.fill_diagonal(similarity_array, np.nan)
+    # print(similarity_array)
+    # print(similarity_array.max())
+    # print(similarity_array.min())
 
     # Array to pandas dataframe with column and row indices
     similarity_df = pd.DataFrame(similarity_array, index=repo_names_index, columns=repo_names_index)
 
-    # Save data frame to json
+
+
+    # print(tabulate(similarity_df, headers='keys',
+    #                tablefmt='psql', showindex=True))
+
+    ranks_array = np.empty_like(similarity_array)
+
+    for i, row in enumerate(similarity_array):
+        ranks_array[i] = (len(similarity_array)) - rankdata(row, method='ordinal')
+
+    similarity_ranks_df = pd.DataFrame(ranks_array, index=repo_names_index, columns=repo_names_index)
+
+    # print(tabulate(similarity_ranks_df, headers='keys',
+    #                tablefmt='psql', showindex=True))
+
+    # Save similarity scores data frame to json
+    print('Saving similarity scores ...')
     output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_sims.json')  # Specify output name
+    # output_file_tbl = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_sims.csv')  # Specify output name
     similarity_df.to_json(output_file)
+    # similarity_df.to_csv(output_file_tbl)
+
+    # Save similarity rank data frame to json
+    print('Saving similarity ranks ...')
+    output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_sims_ranks.json')  # Specify output name
+    similarity_ranks_df.to_json(output_file)
 
 
 if __name__ == '__main__':
@@ -282,8 +312,12 @@ if __name__ == '__main__':
 
     # JOB: Load data from file
     print('Loading data ...')
-    # data_frame = load_data_to_df('DataCollection/data/data.json', download_data=False)
-    data_test = load_data_to_df('DataCollection/data/filtered_data.json', download_data=False)
+    data_frame = load_data_to_df('DataCollection/data/filtered_data.json', download_data=False)
+
+    # Filter data
+    # data_frame = filter_data_frame(data_frame, has_architecture=False, has_english_readme=True)
+    # print(tabulate(data_frame.head(20), headers='keys',
+    #                tablefmt='psql', showindex=True))
     # get_stats(data_frame)
 
     # train_test_nn_type(data_frame, write_to_db=False)
@@ -292,4 +326,4 @@ if __name__ == '__main__':
     # model = train_test_doc2vec_nn_application(data_frame, 'nn_application', nn_application_encoding)
 
     # Calculate repository similarities based on readme texts
-    calculate_similarities(data_test)
+    calculate_similarities(data_frame)

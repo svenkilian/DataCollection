@@ -374,3 +374,28 @@ def get_optimizer_name(optimizer):
     return_name = translation_dict.get(optimizer, optimizer.capitalize())
 
     return return_name
+
+
+def filter_data_frame(data_frame, has_architecture=False, has_english_readme=False):
+    """
+    Filters repository dataframe by specified attributes.
+
+    :param data_frame:
+    :param has_architecture:
+    :param has_english_readme:
+    :return:
+    """
+    # JOB: Filter by repositories with architecture information
+    if has_architecture:
+        data_frame = data_frame[(data_frame['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
+            data_frame['py_data'].apply(func=lambda x: x.get('model_file_found')))]
+
+    # JOB: Filter by repositories with non-empty English readme
+    if has_english_readme:
+        data_frame = data_frame[
+            (data_frame['readme_language'] == 'English') & (data_frame['readme_text'] != None)]
+
+    # JOB: Reset index
+    data_frame.reset_index(inplace=True, drop=True)  # Reset index
+
+    return data_frame
