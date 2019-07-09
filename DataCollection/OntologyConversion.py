@@ -6,7 +6,8 @@ import sys
 from werkzeug.urls import url_fix
 
 import DataAnalysis
-from HelperFunctions import get_loss_function_name, get_optimizer_name, get_layer_type_name, load_data_to_df
+from HelperFunctions import get_loss_function_name, get_optimizer_name, get_layer_type_name, load_data_to_df, \
+    filter_data_frame
 from config import ROOT_DIR
 import os
 from rdflib import Graph, BNode, ConjunctiveGraph, URIRef, Literal, Namespace, RDF, RDFS
@@ -333,6 +334,30 @@ def filter_graph(graph):
     return graph
 
 
+def fix_license_and_urls(data_frame):
+    """
+    Creates license URL and display name and fixes broken URLs from see_also_links and reference_list.
+
+    :param data_frame: DataFrame to perform fixing operation on
+    :return: Fixed DataFrame
+    """
+
+    # JOB: Transform license object to string
+    license_base = 'https://choosealicense.com/licenses/'
+    data_frame['license_url'] = data_frame['license'].apply(lambda lic: license_base + lic.get('key') if lic else None)
+    data_frame['license'] = data_frame['license'].apply(lambda lic: lic.get('name') if lic else None)
+
+    # JOB: Fix potentially broken URLs
+    data_frame['see_also_links'] = data_frame['see_also_links'].apply(
+        lambda ref_list: [url_fix(ref_link) for ref_link in
+                          ref_list])
+    data_frame['reference_list'] = data_frame['reference_list'].apply(
+        lambda ref_list: [url_fix(ref_link) for ref_link in
+                          ref_list])
+
+    return data_frame
+
+
 if __name__ == '__main__':
     """
     Main method to be executed on run.
@@ -341,46 +366,28 @@ if __name__ == '__main__':
     # Load data from json file
     df_github = load_data_to_df(os.path.join(ROOT_DIR, 'DataCollection/data/data.json'), download_data=False)
 
-    # Print column names
-    # print(df_github.columns)
+    # Fix license and URLs
+    df_github = fix_license_and_urls(df_github)
 
-    # JOB: Transform license object to string
-    license_base = 'https://choosealicense.com/licenses/'
-    df_github['license_url'] = df_github['license'].apply(lambda lic: license_base + lic.get('key') if lic else None)
-    df_github['license'] = df_github['license'].apply(lambda lic: lic.get('name') if lic else None)
+    # Filter for repositories with English readme and architecture information
+    data_frame = filter_data_frame(df_github, has_architecture=True, has_english_readme=True)
 
-    # JOB: Fix potentially broken URLs
-    df_github['see_also_links'] = df_github['see_also_links'].apply(lambda ref_list: [url_fix(ref_link) for ref_link in
-                                                                                      ref_list])
-    df_github['reference_list'] = df_github['reference_list'].apply(lambda ref_list: [url_fix(ref_link) for ref_link in
-                                                                                      ref_list])
+    # Add reference repositories to dataframe
+    # face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
+    # traffic_sign_repo = df_github[df_github['repo_full_name'] == 'patirasam/Deep-Learning-CNN-Traffic-Sign-Classifier']
 
-    # print(tabulate(df_github.sample(10), headers='keys', tablefmt='psql', showindex=True))
-    # print(tabulate(df_github.loc[[12852]], headers='keys', tablefmt='psql', showindex=True))
-    # print(type(df_github.loc[12852, 'reference_list']))
-
-    # full_graph = create_rdf_from_df(df_github, 'graph_data')
-
-    data_frame = df_github[(df_github['readme_language'] == 'English') & (df_github['readme_text'] != None) & (
-            (df_github['readme_text'].str.len()) > 5000) & ~(
-        df_github['repo_name'].str.contains(
-            '([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)'))]
-
-    face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
-    traffic_sign_repo = df_github[df_github['repo_full_name'] == 'patirasam/Deep-Learning-CNN-Traffic-Sign-Classifier']
-
-    data_frame = data_frame.sample(1000).append(face_recognition_repo).append(traffic_sign_repo)
+    # data_frame = data_frame.append(face_recognition_repo).append(traffic_sign_repo)  # Sample if necessary
     data_frame.reset_index(inplace=True, drop=True)  # Reset index
 
     # Export filtered dataframe to json
     output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data.json')  # Specify output name
     data_frame.to_json(output_file)
 
-    create_rdf_from_df(data_frame, 'graph_data_small_new')
+    # JOB: Create RDF Graph from DataFrame
+    create_rdf_from_df(data_frame, 'graph_data')
 
     # JOB: Filter by repositories with architecture information
     # architecture_data = df_github[(df_github['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
     #     df_github['py_data'].apply(func=lambda x: x.get('model_file_found')))]
 
     # create_rdf_from_df(architecture_data.sample(2).append(face_recognition_repo), 'graph_architecture', architecture_filter=True)
-

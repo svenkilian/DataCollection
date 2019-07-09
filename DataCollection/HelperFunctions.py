@@ -376,13 +376,17 @@ def get_optimizer_name(optimizer):
     return return_name
 
 
-def filter_data_frame(data_frame, has_architecture=False, has_english_readme=False):
+def filter_data_frame(data_frame, has_architecture=False, has_english_readme=False, no_behavioral_cloning=False,
+                      long_readme_only=False, min_length=1000):
     """
     Filters repository dataframe by specified attributes.
 
     :param data_frame:
     :param has_architecture:
     :param has_english_readme:
+    :param no_behavioral_cloning:
+    :param long_readme_only:
+    :param min_length:
     :return:
     """
     # JOB: Filter by repositories with architecture information
@@ -394,6 +398,15 @@ def filter_data_frame(data_frame, has_architecture=False, has_english_readme=Fal
     if has_english_readme:
         data_frame = data_frame[
             (data_frame['readme_language'] == 'English') & (data_frame['readme_text'] != None)]
+
+    # JOB: Filter out repositories with allusion to behavioral cloning udaciy project in name
+    if no_behavioral_cloning:
+        data_frame = data_frame[
+            ~(data_frame['repo_name'].str.contains('([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)'))]
+
+    # JOB: Filter by repositories with specified minimum readme length
+    if long_readme_only:
+        data_frame = data_frame[data_frame['readme_text'].str.len() > min_length]
 
     # JOB: Reset index
     data_frame.reset_index(inplace=True, drop=True)  # Reset index

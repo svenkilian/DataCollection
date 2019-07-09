@@ -17,9 +17,10 @@ from tqdm import tqdm
 from Classifiers.AttributeClfs import train_test_doc2vec_nn_application, get_nn_type_from_architecture, \
     nn_application_encoding, train_test_nn_application, train_test_nn_type
 from HelperFunctions import load_data_to_df, filter_data_frame
-from NLPFunctions import read_corpus
+from NLPFunctions import read_corpus, perform_doc2vec_embedding
 from scipy.stats import rankdata
 from config import ROOT_DIR
+from multiprocessing import Pool
 
 pd.set_option('mode.chained_assignment', None)
 
@@ -89,9 +90,8 @@ def get_stats(data_frame):
     print(2 * '\n')
 
     # Has extracted architecture view
-    extracted_architecture_count = data_frame.groupby(['extracted_architecture']).size().reset_index(name=
-                                                                                                     'Counts of repos').set_index(
-        'extracted_architecture')
+    extracted_architecture_count = data_frame.groupby(['extracted_architecture']).size().reset_index(
+        name='Counts of repos').set_index('extracted_architecture')
     print(extracted_architecture_count)
     print(2 * '\n')
 
@@ -207,14 +207,8 @@ def calculate_similarities(data_frame):
     :return:
     """
 
-    # JOB: Filter repositories by repositories with non-empty English readmes with minimum length of 5000 characters
-    # data_frame = data_frame[(data_frame['readme_language'] == 'English') & (data_frame['readme_text'] != None) & (
-    #         (data_frame['readme_text'].str.len()) > 5000) & ~(
-    #     data_frame['repo_name'].str.contains(
-    #         '([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)'))].head(1000)
-    # data_frame.reset_index(inplace=True)  # Reset index
-
     data_frame.reset_index(inplace=True, drop=True)
+
     # Get repo name array
     repo_names_index = data_frame['repo_full_name'].values
 
@@ -223,14 +217,14 @@ def calculate_similarities(data_frame):
 
     # JOB: Load pre-trained Doc2Vec model
     print('Loading pre-trained model ...')
-    doc2vec_model = Doc2Vec.load(get_tmpfile('doc2vec_model'))
+    doc2vec_model = Doc2Vec.load(os.path.join(ROOT_DIR, 'DataCollection/data/doc2vec_model'))
 
     # Preprocess readmes
     print('Pre-processing readmes ...')
     preprocessed_readmes = list(read_corpus(data_frame['readme_text'], tokens_only=True))
 
     # Initialize empty array
-    vectorized_readmes = np.empty((len(preprocessed_readmes), 20))  # TODO: Make matrix width variable
+    vectorized_readmes = np.empty((len(preprocessed_readmes), doc2vec_model.vector_size))  # TODO: Make matrix width variable
 
     print('Vectorizing readmes ... \n')
     for i, row in tqdm(enumerate(vectorized_readmes), total=len(vectorized_readmes)):
@@ -277,8 +271,6 @@ def calculate_similarities(data_frame):
     # Array to pandas dataframe with column and row indices
     similarity_df = pd.DataFrame(similarity_array, index=repo_names_index, columns=repo_names_index)
 
-
-
     # print(tabulate(similarity_df, headers='keys',
     #                tablefmt='psql', showindex=True))
 
@@ -312,6 +304,8 @@ if __name__ == '__main__':
 
     # JOB: Load data from file
     print('Loading data ...')
+    full_readme_data = filter_data_frame(load_data_to_df('DataCollection/data/data.json', download_data=False),
+                                         has_english_readme=True)
     data_frame = load_data_to_df('DataCollection/data/filtered_data.json', download_data=False)
 
     # Filter data
@@ -324,6 +318,10 @@ if __name__ == '__main__':
     # train_test_nn_application(data_frame, write_to_db=False)
     # model = train_test_doc2vec_nn_application(data_frame, 'nn_type', get_nn_type_from_architecture)
     # model = train_test_doc2vec_nn_application(data_frame, 'nn_application', nn_application_encoding)
+
+    # JOB: Perform Doc2Vec embedding
+    # print('Performing doc2vec ...')
+    # model = perform_doc2vec_embedding(full_readme_data['readme_text'], train_model=True, vector_size=100, epochs=20)
 
     # Calculate repository similarities based on readme texts
     calculate_similarities(data_frame)

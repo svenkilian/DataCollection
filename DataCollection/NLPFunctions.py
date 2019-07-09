@@ -285,16 +285,18 @@ def read_corpus(readme_text_series, tokens_only=False):
             yield gensim.models.doc2vec.TaggedDocument(gensim.utils.simple_preprocess(document), [i])
 
 
-def perform_doc2vec_embedding(readme_text_series, train_model=False):
+def perform_doc2vec_embedding(readme_text_series, train_model=False, vector_size=20, epochs=40):
     """
     Performs doc2vec embedding on text corpus from data frame.
 
+    :param readme_text_series: Series containing document corpis in readme_text series
     :param train_model: Flag indicating whether to train doc2vec embedding from scratch
-    :param data_frame: Data frame containing document corpis in readme_text series
-    :return: train_corpus, trained model
+    :param vector_size: Size of representation vectors
+    :param epochs: Number of training epochs
+    :return: Trained model
     """
 
-    file_name = get_tmpfile('doc2vec_model')
+    file_name = os.path.join(ROOT_DIR, 'DataCollection/data/doc2vec_model')
 
     if train_model:
         print('Extracting corpus ...')
@@ -302,7 +304,7 @@ def perform_doc2vec_embedding(readme_text_series, train_model=False):
         # test_corpus = list(read_corpus(data_frame, tokens_only=True))
 
         # Initialize doc2vec model
-        model = gensim.models.doc2vec.Doc2Vec(vector_size=20, min_count=2, epochs=20,
+        model = gensim.models.doc2vec.Doc2Vec(vector_size=vector_size, min_count=2, epochs=epochs,
                                               workers=multiprocessing.cpu_count())
         # Build vocabulary
         print('Building vocabulary from corpus ...')
