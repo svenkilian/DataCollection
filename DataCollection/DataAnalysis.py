@@ -1,8 +1,14 @@
 # Standalone executable module implementing experimental NLP techniques to textual information.
+import warnings
+
+warnings.filterwarnings(action='ignore', category=UserWarning, module='gensim')
+import multiprocessing
 import os
 import re
 import sys
+import time
 from collections import Counter
+from itertools import repeat
 from urllib.parse import urlparse
 
 import gensim
@@ -199,6 +205,22 @@ def analyze_topics(data_frame):
     return df['Tag'].tolist()
 
 
+def calculate_similarity_row_vector(vectorized_readmes, row_index):
+    # print('Current row index being processed: %d' % row_index)
+    similarity_row = np.zeros(len(vectorized_readmes))
+
+    for col_index in range(row_index + 1, vectorized_readmes.shape[0]):
+        vec_1 = vectorized_readmes[row_index]
+        vec_2 = vectorized_readmes[col_index]
+
+        # Calculate cosine similarity
+        similarity = cosine_similarity(vec_1.reshape(1, -1), vec_2.reshape(1, -1))[0, 0]
+
+        similarity_row[col_index] = similarity
+
+    return similarity_row
+
+
 def calculate_similarities(data_frame):
     """
     Calculates similarities between repositories based on their readme file's doc2vec representation.
@@ -213,7 +235,7 @@ def calculate_similarities(data_frame):
     repo_names_index = data_frame['repo_full_name'].values
 
     # Initialize empty numpy array
-    similarity_array = np.zeros((data_frame.shape[0], data_frame.shape[0]))
+    # similarity_array = np.zeros((data_frame.shape[0], data_frame.shape[0]))
 
     # JOB: Load pre-trained Doc2Vec model
     print('Loading pre-trained model ...')
@@ -224,7 +246,8 @@ def calculate_similarities(data_frame):
     preprocessed_readmes = list(read_corpus(data_frame['readme_text'], tokens_only=True))
 
     # Initialize empty array
-    vectorized_readmes = np.empty((len(preprocessed_readmes), doc2vec_model.vector_size))  # TODO: Make matrix width variable
+    vectorized_readmes = np.empty(
+        (len(preprocessed_readmes), doc2vec_model.vector_size))
 
     print('Vectorizing readmes ... \n')
     for i, row in tqdm(enumerate(vectorized_readmes), total=len(vectorized_readmes)):
@@ -233,29 +256,45 @@ def calculate_similarities(data_frame):
     # Load vectorized readmes from saved model
     # vectorized_readmes = doc2vec_model.docvecs
 
+    start_time = time.time()
     print('Calculating similarities ...')
-    # JOB: Pair-wise comparison between repositories based on readme texts using cosine similarity
-    for ix_outer, repo in tqdm(data_frame.iterrows(), total=data_frame.shape[0]):
-        for ix_inner in range(ix_outer + 1, data_frame.shape[0]):
-            vec_1 = vectorized_readmes[ix_outer]
-            vec_2 = vectorized_readmes[ix_inner]
-            # vec_1 = doc2vec_model.infer_vector(gensim.utils.simple_preprocess(repo['readme_text']))
-            # vec_2 = doc2vec_model.infer_vector(
-            #     gensim.utils.simple_preprocess(data_frame.loc[[ix_inner], 'readme_text'].values[0]))
 
-            # Calculate cosine similarity
-            similarity = cosine_similarity(vec_1.reshape(1, -1), vec_2.reshape(1, -1))[0, 0]
-            similarity_array[ix_outer, ix_inner] = similarity
+    process_pool = Pool(processes=multiprocessing.cpu_count())
+    row_indices = range(vectorized_readmes.shape[0])
 
-            # search_words = re.compile(u'([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)')
-            #
-            # # Only consider strong similarities for console output
-            # if len(repo['readme_text']) > 1000:
-            #     if not search_words.search(repo['repo_name']):
-            #         if 0.9 < similarity < 1.0:
-            #             print('(%d, %d): %g' % (ix_outer, ix_inner, round(similarity, 2)))
-            #             print(tabulate(data_frame.loc[[ix_outer, ix_inner], ['repo_url']], tablefmt='psql', showindex=True,
-            #                            headers='keys'))
+    similarity_array = np.asarray(
+        process_pool.starmap(calculate_similarity_row_vector, zip(repeat(vectorized_readmes), row_indices)))
+
+    process_pool.close()
+    process_pool.join()
+
+    # print('Calculating similarities ...')
+    # # JOB: Pair-wise comparison between repositories based on readme texts using cosine similarity
+    # for ix_outer, repo in tqdm(data_frame.iterrows(), total=data_frame.shape[0]):
+    #     for ix_inner in range(ix_outer + 1, data_frame.shape[0]):
+    #         vec_1 = vectorized_readmes[ix_outer]
+    #         vec_2 = vectorized_readmes[ix_inner]
+    #         # vec_1 = doc2vec_model.infer_vector(gensim.utils.simple_preprocess(repo['readme_text']))
+    #         # vec_2 = doc2vec_model.infer_vector(
+    #         #     gensim.utils.simple_preprocess(data_frame.loc[[ix_inner], 'readme_text'].values[0]))
+    #
+    #         # Calculate cosine similarity
+    #         similarity = cosine_similarity(vec_1.reshape(1, -1), vec_2.reshape(1, -1))[0, 0]
+    #         similarity_array[ix_outer, ix_inner] = similarity
+    #
+    #         # search_words = re.compile(u'([Bb]ehavior|[Bb]ehaviour|[Cc]ar|[Cc]lon|[Dd]riv)')
+    #         #
+    #         # # Only consider strong similarities for console output
+    #         # if len(repo['readme_text']) > 1000:
+    #         #     if not search_words.search(repo['repo_name']):
+    #         #         if 0.9 < similarity < 1.0:
+    #         #             print('(%d, %d): %g' % (ix_outer, ix_inner, round(similarity, 2)))
+    #         #             print(tabulate(data_frame.loc[[ix_outer, ix_inner], ['repo_url']], tablefmt='psql', showindex=True,
+    #         #                            headers='keys'))
+
+    end_time = time.time()
+
+    print('Execution time: %g seconds.' % round(end_time - start_time, 2))
 
     # Make matrix symmetric
     print('Adding lower triangle to similarity matrix ...')
@@ -324,4 +363,5 @@ if __name__ == '__main__':
     # model = perform_doc2vec_embedding(full_readme_data['readme_text'], train_model=True, vector_size=100, epochs=20)
 
     # Calculate repository similarities based on readme texts
+
     calculate_similarities(data_frame)

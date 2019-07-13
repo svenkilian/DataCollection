@@ -370,7 +370,8 @@ if __name__ == '__main__':
     df_github = fix_license_and_urls(df_github)
 
     # Filter for repositories with English readme and architecture information
-    data_frame = filter_data_frame(df_github, has_architecture=True, has_english_readme=True)
+    data_frame = filter_data_frame(df_github, has_architecture=True, has_english_readme=True, long_readme_only=False,
+                                   min_length=3000)
 
     # Add reference repositories to dataframe
     # face_recognition_repo = df_github[df_github['repo_full_name'] == 'EvilPort2/Face-Recognition']
