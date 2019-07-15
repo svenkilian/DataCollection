@@ -48,6 +48,7 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
     vs = Namespace('http://www.w3.org/2003/06/sw-vocab-status/ns#')
     cc = Namespace('http://creativecommons.org/ns#')
     doap = Namespace('http://usefulinc.com/ns/doap#')
+    xmls = Namespace('http://www.w3.org/2001/XMLSchema#')
 
     # General Information about Ontology
     tmp = URIRef('https://w3id.org/nno/data')
@@ -76,6 +77,14 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
     for item in activation_functions_set:
         pass
         # print(item)
+
+    # JOB: Add hassuggestedUse to ontology
+    g.add((URIRef(ontology + 'hassuggestedUse'), RDF.type, owl.DatatypeProperty))
+    g.add((URIRef(ontology + 'hassuggestedUse'), RDFS.domain, ontologyURI.Neural_Network))
+    g.add((URIRef(ontology + 'hassuggestedUse'), RDFS.range, xmls.string))
+    g.add((URIRef(ontology + 'hassuggestedUse'), RDFS.label, 'has suggested use'))
+    g.add((URIRef(ontology + 'hassuggestedUse'), RDFS.comment,
+           'Suggested primary intended use (domain) for which the Neural Network was trained for.'))
 
     # JOB: List all defined optimizers
     optimizers = g.subjects(RDF.type, URIRef(ontology + 'Optimizer'))
@@ -160,6 +169,16 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
         if row['repo_tags']:
             for category_tag in row['repo_tags']:
                 g.add((nn, doap.category, Literal(category_tag)))
+
+        # Add intended application if information exists
+        if row['nn_application']:
+            for nn_application in row['nn_applications']:
+                g.add((nn, ontologyURI.hasintendedUse, nn_application))
+
+        # Add predicted intended application if information exists
+        if row['suggested_application']:
+            for nn_application in row['suggested_application']:
+                g.add((nn, ontologyURI.hassuggestedUse, nn_application))  # TODO: Check whether conversion successful
 
         # Assign stars
         if row['repo_watch'] is not None:
@@ -364,13 +383,16 @@ if __name__ == '__main__':
     """
 
     # Load data from json file
+    print('Loading data from file ...')
     df_github = load_data_to_df(os.path.join(ROOT_DIR, 'DataCollection/data/data.json'), download_data=False)
 
     # Fix license and URLs
+    print('Fixing data ...')
     df_github = fix_license_and_urls(df_github)
 
     # Filter for repositories with English readme and architecture information
-    data_frame = filter_data_frame(df_github, has_architecture=True, has_english_readme=True, long_readme_only=False,
+    print('Filter repositories ...')
+    data_frame = filter_data_frame(df_github, has_architecture=True, has_english_readme=True, long_readme_only=True,
                                    min_length=3000)
 
     # Add reference repositories to dataframe
@@ -381,10 +403,12 @@ if __name__ == '__main__':
     data_frame.reset_index(inplace=True, drop=True)  # Reset index
 
     # Export filtered dataframe to json
+    print('Export filtered data ...')
     output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data.json')  # Specify output name
     data_frame.to_json(output_file)
 
     # JOB: Create RDF Graph from DataFrame
+    print('Creating graph ...')
     create_rdf_from_df(data_frame, 'graph_data')
 
     # JOB: Filter by repositories with architecture information
