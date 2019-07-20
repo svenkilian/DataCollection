@@ -2,15 +2,18 @@ import os
 import re
 import time
 
+import joblib
 import numpy as np
 import pandas as pd
 from joblib import dump, load
+from scipy import sparse
 from sklearn import metrics
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_predict
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
-from skmultilearn.problem_transform import ClassifierChain
+from skmultilearn.problem_transform import ClassifierChain, BinaryRelevance, LabelPowerset
 from tabulate import tabulate
 
 import DataCollection
@@ -253,25 +256,47 @@ def get_nn_type_from_architecture(data_frame, type_list=None):
     return data_frame
 
 
-def preprocess_data(df, type_list):
+def preprocess_data(df, type_list, load_data=False):
     """
     Applies pre-processing and returns train-test split of data set.
 
+    :param type_list: Features to predict
+    :param load_data: Flag indicating whether to load pre-trained models
     :param df: Data frame to process
     :return: Train-test split of preprocessed data and fitted count vectorizer
     """
 
-    # Extract features and target matrices
-    X = df['readme_text']
     y = df.loc[:, type_list]
 
-    # Fit count vectorizer and transform features
     begin_time = time.time()
-    count_vectorizer = CountVectorizer(strip_accents='unicode', ngram_range=(1, 2),
-                                       tokenizer=LemmaTokenizer(), max_features=500).fit(X)
-    X = count_vectorizer.transform(X)
-    tfidf_transformer = TfidfTransformer(use_idf=True)
-    X = tfidf_transformer.fit_transform(X)
+
+    if load_data:
+        print('Loading stored matrix and models ...')
+        X = sparse.load_npz(os.path.join(ROOT_DIR, 'DataCollection/data/Feature_Matrix.npz'))
+        count_vectorizer = joblib.load(os.path.join(ROOT_DIR, 'DataCollection/data/CV_trained.pkl'))
+        tfidf_transformer = joblib.load(os.path.join(ROOT_DIR, 'DataCollection/data/tf_idf_transformer.pkl'))
+
+    else:
+        # Extract feature matrix
+        X = df['readme_text']
+
+        # Fit count vectorizer and transform features
+
+        count_vectorizer = CountVectorizer(strip_accents='unicode', ngram_range=(1, 2),
+                                           tokenizer=LemmaTokenizer(), max_features=500).fit(X)
+        X = count_vectorizer.transform(X)
+        tfidf_transformer = TfidfTransformer(use_idf=True)
+        X = tfidf_transformer.fit_transform(X)
+
+        # Save feature matrix
+        sparse.save_npz(os.path.join(ROOT_DIR, 'DataCollection/data/Feature_Matrix.npz'), X)
+
+        # Save CountVectorizer
+        joblib.dump(count_vectorizer, os.path.join(ROOT_DIR, 'DataCollection/data/CV_trained.pkl'))
+
+        # Save tf-idf transformer
+        joblib.dump(tfidf_transformer, os.path.join(ROOT_DIR, 'DataCollection/data/tf_idf_transformer.pkl'))
+
     end_time = time.time()
     print('Preprocessing/Vectorizing duration: %g seconds' % round((end_time - begin_time), 2))
 
@@ -282,10 +307,10 @@ def preprocess_data(df, type_list):
     # Obtain train and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0, shuffle=True)
 
-    return X_train, X_test, y_train, y_test, count_vectorizer, tfidf_transformer
+    return X_train, X_test, y_train, y_test, X, y, count_vectorizer, tfidf_transformer
 
 
-def train_model(X_train, y_train, clf, load_model=False):
+def train_model(X_train=None, y_train=None, clf=None, X=None, y=None, cross_validate=False, k=3,load_model=False):
     """
     Trains and returns classifier.
 
@@ -298,12 +323,22 @@ def train_model(X_train, y_train, clf, load_model=False):
 
     # If model needs to be retrained or trained for the first time
     if not load_model:
-        classifier = ClassifierChain(clf)
-        # predictions = cross_val_predict(classifier, X.astype(float), y.astype(float), cv=3, n_jobs=12,
-        #                                 verbose=2)
-        # cross_val_accuracy = metrics.f1_score(y, predictions, average='samples')
-        classifier.fit(X_train.astype(float), y_train.astype(float))
-        dump(classifier, os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
+        # classifier = OneVsRestClassifier(clf)
+        # classifier = BinaryRelevance(clf)
+        classifier = LabelPowerset(clf)
+        # classifier = ClassifierChain(clf)
+
+        if cross_validate:
+            print('Starting Cross Validation using %s ...' % str(classifier))
+            predictions = cross_val_predict(classifier, X.astype(float), y.astype(float), cv=k, n_jobs=6,
+                                            verbose=2)
+            cross_val_accuracy = metrics.f1_score(y, predictions, average='weighted')  # TODO: Change back to 'samples'
+
+            return cross_val_accuracy
+
+        else:
+            classifier.fit(X_train.astype(float), y_train.astype(float))
+            dump(classifier, os.path.join(ROOT_DIR, 'DataCollection/data/trained_model.joblib'))
 
     # If trained model can be loaded from file
     else:
@@ -376,6 +411,7 @@ def train_test_nn_type(data_frame, write_to_db=False):
     df = get_nn_type_from_architecture(data_frame)
 
     # JOB: Decode extracted architecture
+    print('Decoding extracted architecture information ...')
     df = nn_decoding(df, type_list, 'nn_type')
 
     # JOB: Write extracted application information to database
@@ -409,22 +445,26 @@ def train_test_nn_type(data_frame, write_to_db=False):
 
     # Apply text preprocessing and split into training and test data
     print('Preprocessing data ...')
-    X_train, X_test, y_train, y_test, count_vectorizer, tfidf_transformer = preprocess_data(df_learn, type_list)
+    X_train, X_test, y_train, y_test, X, y, count_vectorizer, tfidf_transformer = preprocess_data(df_learn, type_list,
+                                                                                                  load_data=False)
 
     print('Number of repositories: %d' % df_learn.shape[0])
 
     # JOB: Train model
     print('Training model ...')
     begin_time = time.time()
-    clf = train_model(X_train, y_train, LinearSVC(max_iter=10000), load_model=False)
+    # clf = train_model(X_train, y_train, LinearSVC(max_iter=10000), load_model=False)
+    cross_val_f_score = train_model(None, None, LinearSVC(max_iter=10000, class_weight='balanced'), X, y, cross_validate=True, k=10, load_model=False)
+
+    print('Cross-validated score: %g' % round(cross_val_f_score, 4))
     end_time = time.time()
     print('Model fit duration: %g seconds' % round((end_time - begin_time), 2))
     # print('Cross validation accuracy: %g' % round(cross_val_accuracy, 2))
 
     begin_time = time.time()
-    score = test_model(X_test, y_test, clf)
+    # score = test_model(X_test, y_test, clf) # TODO: Uncomment
 
-    print('Score: %g' % round(score, 2))
+    # print('Score: %g' % round(score, 2))
 
     end_time = time.time()
 
@@ -445,6 +485,7 @@ def train_test_nn_type(data_frame, write_to_db=False):
     #     (data_frame['readme_text'] != None) &
     #     ~(data_frame['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) &
     #     ~(data_frame['py_data'].apply(func=lambda x: x.get('model_file_found')))]
+    return None  # TODO: Uncomment
 
     print('Applying model to data ...')
     begin_time = time.time()
@@ -481,7 +522,7 @@ def train_test_nn_application(data_frame, write_to_db=False):
     :return:
     """
 
-    print('Performing tf-idf classification ...')
+    # print('Performing tf-idf classification ...')
     collection = DataCollection.DataCollection('Repos_New')
 
     program_start_time = time.time()  # Time training and testing duration
@@ -509,14 +550,20 @@ def train_test_nn_application(data_frame, write_to_db=False):
 
     # Apply text preprocessing and split into training and test data
     print('Preprocessing data ...')
-    X_train, X_test, y_train, y_test, count_vectorizer, tfidf_transfomer = preprocess_data(df_learn, topic_list)
+    X_train, X_test, y_train, y_test, X, y, count_vectorizer, tfidf_transfomer = preprocess_data(df_learn, topic_list,
+                                                                                                 load_data=False)
 
     # JOB: Train model
     print('Training model ...')
     begin_time = time.time()
-    clf = train_model(X_train, y_train, LinearSVC(max_iter=10000), load_model=False)
+    cross_val_score = train_model(X_train, y_train, clf=LinearSVC(max_iter=10000, class_weight='balanced'), X=X, y=y,
+                                  cross_validate=True, k=10, load_model=False)  # TODO: Change back to clf
     end_time = time.time()
     print('Model fit duration: %g seconds' % round((end_time - begin_time), 2))
+
+    print('Cross Validation Score: %g' % round(cross_val_score, 3))
+
+    return None
 
     # JOB: Test trained model on test data
     score = test_model(X_test, y_test, clf)

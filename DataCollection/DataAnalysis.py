@@ -14,11 +14,14 @@ from urllib.parse import urlparse
 import gensim
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from gensim.models import Doc2Vec
 from gensim.test.utils import get_tmpfile
 from sklearn.metrics.pairwise import cosine_similarity
 from tabulate import tabulate
 from tqdm import tqdm
+from sklearn.decomposition import PCA
+from mpl_toolkits.mplot3d import Axes3D
 
 from Classifiers.AttributeClfs import train_test_doc2vec_nn_application, get_nn_type_from_architecture, \
     nn_application_encoding, train_test_nn_application, train_test_nn_type
@@ -205,6 +208,72 @@ def analyze_topics(data_frame):
     return df['Tag'].tolist()
 
 
+def display_pca_scatterplot(doc_vecs, words=None, sample=0):
+    """
+    Show scatterplot of dimensionally reduced data.
+
+    :param model: Trained gensim embedding model
+    :param words:
+    :param sample: Sample size
+    :return:
+    """
+
+    reduced = PCA(n_components=2).fit_transform(doc_vecs)[:, :2]
+
+    plt.figure(figsize=(6, 6))
+    plt.scatter(reduced[:, 0], reduced[:, 1], edgecolors='k', c='r')
+
+    reduced = PCA(n_components=3).fit_transform(doc_vecs)[:, :3]
+    fig = plt.figure(figsize=(16, 12))
+
+    ax = Axes3D(fig)
+    ax.scatter(reduced[:, 0],
+               reduced[:, 1],
+               reduced[:, 2],
+               # c=train_rebal.target.values,
+               # cmap=plt.cm.winter_r,
+               s=2,
+               edgecolor='none',
+               marker='o')
+    plt.title("Semantic Tf-Idf-SVD reduced plot of Sincere-Insincere data distribution")
+    plt.xlabel("First dimension")
+    plt.ylabel("Second dimension")
+    plt.legend()
+    # plt.xlim(0.0, 0.20)
+    # plt.ylim(-0.2, 0.4)
+    plt.show()
+
+
+def visualize_doc2vec_embedding(data_frame):
+    """
+    Calculates similarities between repositories based on their readme file's doc2vec representation.
+
+    :param data_frame: Data frame containing readme texts.
+    :return:
+    """
+
+    data_frame.reset_index(inplace=True, drop=True)
+
+    # Get repo name array
+    repo_names_index = data_frame['repo_full_name'].values
+
+    # Initialize empty numpy array
+    # similarity_array = np.zeros((data_frame.shape[0], data_frame.shape[0]))
+
+    # JOB: Load pre-trained Doc2Vec model
+    print('Loading pre-trained model ...')
+    doc2vec_model = Doc2Vec.load(os.path.join(ROOT_DIR, 'DataCollection/data/doc2vec_model'))
+
+    doc_vecs = doc2vec_model.docvecs.doctag_syn0[:-1, :]
+    print(len(doc_vecs))
+    print(type(doc_vecs))
+
+    # for doc in doc_vecs:
+    # print(doc)
+
+    display_pca_scatterplot(doc_vecs)
+
+
 def calculate_similarity_row_vector(vectorized_readmes, row_index):
     # print('Current row index being processed: %d' % row_index)
     similarity_row = np.zeros(len(vectorized_readmes))
@@ -243,7 +312,9 @@ def calculate_similarities(data_frame):
 
     # Preprocess readmes
     print('Pre-processing readmes ...')
-    preprocessed_readmes = list(read_corpus(data_frame['readme_text'], tokens_only=True))
+    preprocessed_readmes = list(
+        read_corpus(data_frame['repo_full_name', 'readme_text'].set_index(['repo_full_name'], drop=True, inplace=True),
+                    tokens_only=True))
 
     # Initialize empty array
     vectorized_readmes = np.empty(
@@ -353,15 +424,19 @@ if __name__ == '__main__':
     #                tablefmt='psql', showindex=True))
     # get_stats(data_frame)
 
-    # train_test_nn_type(data_frame, write_to_db=False)
-    # train_test_nn_application(data_frame, write_to_db=False)
-    # model = train_test_doc2vec_nn_application(data_frame, 'nn_type', get_nn_type_from_architecture)
+    # train_test_nn_type(full_readme_data, write_to_db=False)
+    # train_test_nn_application(full_readme_data, write_to_db=False)
+    # model = train_test_doc2vec_nn_application(full_readme_data, 'nn_type', get_nn_type_from_architecture)
     # model = train_test_doc2vec_nn_application(data_frame, 'nn_application', nn_application_encoding)
 
     # JOB: Perform Doc2Vec embedding
     # print('Performing doc2vec ...')
-    # model = perform_doc2vec_embedding(full_readme_data['readme_text'], train_model=True, vector_size=100, epochs=20)
+    model = perform_doc2vec_embedding(full_readme_data['readme_text'], train_model=False, vector_size=100, epochs=20)
 
     # Calculate repository similarities based on readme texts
 
-    calculate_similarities(data_frame)
+    # calculate_similarities(data_frame)
+
+    # Visualize embedding
+
+    visualize_doc2vec_embedding(data_frame)

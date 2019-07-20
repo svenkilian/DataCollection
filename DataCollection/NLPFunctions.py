@@ -282,7 +282,8 @@ def read_corpus(readme_text_series, tokens_only=False):
             yield gensim.utils.simple_preprocess(document)
         else:
             # For training data, add tags
-            yield gensim.models.doc2vec.TaggedDocument(gensim.utils.simple_preprocess(document), [i])
+            yield gensim.models.doc2vec.TaggedDocument(gensim.utils.simple_preprocess(document),
+                                                       [readme_text_series.index[i]])
 
 
 def perform_doc2vec_embedding(readme_text_series, train_model=False, vector_size=20, epochs=40):

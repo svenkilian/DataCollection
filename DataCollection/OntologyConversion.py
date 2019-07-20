@@ -21,7 +21,7 @@ import html5lib
 logging.basicConfig(level=logging.INFO)
 
 
-def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
+def create_rdf_from_df(data_frame, output_name, architecture_filter=False, serialize_ontology=False):
     """
     Main method to be run on execution of file.
 
@@ -30,6 +30,7 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
     """
 
     df_github = data_frame
+
     # JOB: Define Ontology and namespaces
     output = os.path.join(ROOT_DIR, 'DataCollection/data/' + output_name)  # Specify output name
     g = Graph()  # Instantiate graph
@@ -80,11 +81,25 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
 
     # JOB: Add hassuggestedUse to ontology
     g.add((URIRef(ontology + 'hassuggestedUse'), RDF.type, owl.DatatypeProperty))
-    g.add((URIRef(ontology + 'hassuggestedUse'), RDFS.domain, ontologyURI.Neural_Network))
-    g.add((URIRef(ontology + 'hassuggestedUse'), RDFS.range, xmls.string))
-    g.add((URIRef(ontology + 'hassuggestedUse'), RDFS.label, 'has suggested use'))
-    g.add((URIRef(ontology + 'hassuggestedUse'), RDFS.comment,
-           'Suggested primary intended use (domain) for which the Neural Network was trained for.'))
+    g.add((ontologyURI.hassuggestedUse, RDFS.domain, ontologyURI.Neural_Network))
+    g.add((ontologyURI.hassuggestedUse, RDFS.range, xmls.string))
+    g.add((ontologyURI.hassuggestedUse, RDFS.label, Literal('has suggested use')))
+    g.add((ontologyURI.hassuggestedUse, RDFS.comment,
+           Literal('Suggested primary intended use (domain) for which the Neural Network was trained for.')))
+
+    # JOB: Add hassuggestedType to ontology
+    g.add((URIRef(ontology + 'hassuggestedType'), RDF.type, owl.DatatypeProperty))
+    g.add((ontologyURI.hassuggestedType, RDFS.domain, ontologyURI.Neural_Network))
+    g.add((ontologyURI.hassuggestedType, RDFS.range, xmls.string))
+    g.add((ontologyURI.hassuggestedType, RDFS.label, Literal('has suggested type')))
+    g.add((ontologyURI.hassuggestedType, RDFS.comment,
+           Literal('Suggested Neural Network type based on readme information.')))
+
+    if serialize_ontology:
+        # Serialize ontology structure
+        print('Serializing ontology ...')
+        ontology_output = os.path.join(ROOT_DIR, 'DataCollection/data/ontology')  # Specify output name
+        g.serialize(destination='{}.owl'.format(ontology_output), format='pretty-xml')
 
     # JOB: List all defined optimizers
     optimizers = g.subjects(RDF.type, URIRef(ontology + 'Optimizer'))
@@ -137,7 +152,7 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
         else:
             # If architecture information is not available, set to default
             g.add((nn, RDF.type, ontologyURI.Neural_Network))  # Add model type
-        # g.add((nn, RDF.type, ontologyURI.Neural_Network))  # Add model type
+
         g.add((nn, RDFS.label, Literal(modelName)))  # Add model name
 
         # Add description
@@ -165,22 +180,27 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False):
         # Assign publishing website
         g.add((nn, dc.publisher, URIRef('https://github.com')))
 
-        # TODO: Assign categories
         if row['repo_tags']:
             for category_tag in row['repo_tags']:
                 g.add((nn, doap.category, Literal(category_tag)))
 
         # Add intended application if information exists
-        if row['nn_application']:
-            for nn_application in row['nn_applications']:
-                g.add((nn, ontologyURI.hasintendedUse, nn_application))
+        if row['application'] is not np.nan:
+            for nn_application in row['application']:
+                g.add((nn, ontologyURI.hasintendedUse, Literal(nn_application)))
 
         # Add predicted intended application if information exists
-        if row['suggested_application']:
+        if row['suggested_application'] is not np.nan:
             for nn_application in row['suggested_application']:
-                g.add((nn, ontologyURI.hassuggestedUse, nn_application))  # TODO: Check whether conversion successful
+                g.add((nn, ontologyURI.hassuggestedUse, Literal(nn_application)))
 
-        # Assign stars
+        # Add predicted neural network type if information exists
+        if row['suggested_type'] is not np.nan:
+            for nn_type in row['suggested_type']:
+                g.add((nn, ontologyURI.hassuggestedType,
+                       Literal(nn_type)))
+
+                # Assign stars
         if row['repo_watch'] is not None:
             g.add((nn, ontologyURI.stars, Literal(int(row['repo_watch']))))
 
@@ -409,7 +429,7 @@ if __name__ == '__main__':
 
     # JOB: Create RDF Graph from DataFrame
     print('Creating graph ...')
-    create_rdf_from_df(data_frame, 'graph_data')
+    create_rdf_from_df(data_frame, 'graph_data', serialize_ontology=False)
 
     # JOB: Filter by repositories with architecture information
     # architecture_data = df_github[(df_github['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (

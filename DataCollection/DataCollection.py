@@ -139,6 +139,7 @@ class DataCollection:
         :param value: Value to assign to attribute
         :return:
         """
+
         self.collection_object.update_one({
             '_id': ObjectId(id['$oid'])
         }, {
@@ -156,6 +157,7 @@ class DataCollection:
         :param values: Value to assign to attribute
         :return:
         """
+
         for id, value in zip(ids, values):
             self.add_attribute(id, attribute_name, value)
 
