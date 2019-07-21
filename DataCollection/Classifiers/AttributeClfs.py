@@ -310,7 +310,7 @@ def preprocess_data(df, type_list, load_data=False):
     return X_train, X_test, y_train, y_test, X, y, count_vectorizer, tfidf_transformer
 
 
-def train_model(X_train=None, y_train=None, clf=None, X=None, y=None, cross_validate=False, k=3,load_model=False):
+def train_model(X_train=None, y_train=None, clf=None, X=None, y=None, cross_validate=False, k=3, load_model=False):
     """
     Trains and returns classifier.
 
@@ -391,7 +391,7 @@ def apply_model(clf, count_vectorizer, tfidf_transfomer, data_frame, type_names)
     return result_df
 
 
-def train_test_nn_type(data_frame, write_to_db=False):
+def train_test_nn_type(data_frame, write_to_db=False, set_index=True, load_data=False):
     """
     Trains multi-label classifier on neural network types.
 
@@ -399,12 +399,15 @@ def train_test_nn_type(data_frame, write_to_db=False):
     :return:
     """
 
-    data_frame.set_index('repo_full_name', inplace=True)
+    if set_index:
+        data_frame.set_index('repo_full_name', inplace=True)
+
     program_start_time = time.time()
     collection = DataCollection.DataCollection('Repos_New')
 
     # Specify list of neural network types to consider
-    type_list = ['feed_forward_type', 'conv_type', 'recurrent_type']
+    # type_list = ['feed_forward_type', 'conv_type', 'recurrent_type']
+    type_list = ['conv_type', 'recurrent_type']
 
     # JOB: Extract neural network type information from architecture
     print('Extracting labels from architecture ...')
@@ -446,7 +449,7 @@ def train_test_nn_type(data_frame, write_to_db=False):
     # Apply text preprocessing and split into training and test data
     print('Preprocessing data ...')
     X_train, X_test, y_train, y_test, X, y, count_vectorizer, tfidf_transformer = preprocess_data(df_learn, type_list,
-                                                                                                  load_data=False)
+                                                                                                  load_data=load_data)
 
     print('Number of repositories: %d' % df_learn.shape[0])
 
@@ -454,7 +457,8 @@ def train_test_nn_type(data_frame, write_to_db=False):
     print('Training model ...')
     begin_time = time.time()
     # clf = train_model(X_train, y_train, LinearSVC(max_iter=10000), load_model=False)
-    cross_val_f_score = train_model(None, None, LinearSVC(max_iter=10000, class_weight='balanced'), X, y, cross_validate=True, k=10, load_model=False)
+    cross_val_f_score = train_model(None, None, LinearSVC(max_iter=10000, class_weight='balanced'), X, y,
+                                    cross_validate=True, k=10, load_model=False)
 
     print('Cross-validated score: %g' % round(cross_val_f_score, 4))
     end_time = time.time()

@@ -15,6 +15,7 @@ import gensim
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib
 from gensim.models import Doc2Vec
 from gensim.test.utils import get_tmpfile
 from sklearn.metrics.pairwise import cosine_similarity
@@ -208,7 +209,7 @@ def analyze_topics(data_frame):
     return df['Tag'].tolist()
 
 
-def display_pca_scatterplot(doc_vecs, words=None, sample=0):
+def display_pca_scatterplot(doc_vecs, labels, words=None, sample=0):
     """
     Show scatterplot of dimensionally reduced data.
 
@@ -218,29 +219,35 @@ def display_pca_scatterplot(doc_vecs, words=None, sample=0):
     :return:
     """
 
+    # JOB: 2-dimension representation
     reduced = PCA(n_components=2).fit_transform(doc_vecs)[:, :2]
 
-    plt.figure(figsize=(6, 6))
-    plt.scatter(reduced[:, 0], reduced[:, 1], edgecolors='k', c='r')
+    fig_1 = plt.figure(figsize=(6, 6))
+    fig_1.gca().scatter(reduced[:, 0], reduced[:, 1], edgecolor=None, c=labels, cmap=plt.cm.get_cmap('RdBu'), s=10)
 
+    plt.show()
+
+    # JOB: 3-dimensional representation
     reduced = PCA(n_components=3).fit_transform(doc_vecs)[:, :3]
-    fig = plt.figure(figsize=(16, 12))
 
+    fig = plt.figure(figsize=(16, 12))
     ax = Axes3D(fig)
-    ax.scatter(reduced[:, 0],
-               reduced[:, 1],
-               reduced[:, 2],
-               # c=train_rebal.target.values,
-               # cmap=plt.cm.winter_r,
-               s=2,
-               edgecolor='none',
-               marker='o')
-    plt.title("Semantic Tf-Idf-SVD reduced plot of Sincere-Insincere data distribution")
+    scatter = ax.scatter(reduced[:, 0],
+                         reduced[:, 1],
+                         reduced[:, 2],
+                         c=labels,
+                         cmap=plt.cm.get_cmap('Dark2'),
+                         s=15,
+                         edgecolor='none',
+                         marker='o')
+    # plt.title("Semantic Tf-Idf-SVD reduced plot of Sincere-Insincere data distribution")
     plt.xlabel("First dimension")
     plt.ylabel("Second dimension")
     plt.legend()
-    # plt.xlim(0.0, 0.20)
-    # plt.ylim(-0.2, 0.4)
+    plt.xlim(-6, 6)
+    plt.ylim(-7.5, 5)
+    plt.gca().set_zlim(-4, 5)
+    plt.colorbar(scatter)
     plt.show()
 
 
@@ -252,26 +259,30 @@ def visualize_doc2vec_embedding(data_frame):
     :return:
     """
 
-    data_frame.reset_index(inplace=True, drop=True)
+    data_frame = data_frame[data_frame['application'].notna()]
+
+    # data_frame['nn_type'] = data_frame['nn_type'].apply(
+    #     lambda x: 1 if x[0] == 'recurrent_type' else 2 if x[0] == 'conv_type' else 0)
+    # data_frame = data_frame[data_frame['nn_type'] != 0]
+
+    data_frame['application'] = data_frame['application'].apply(
+        lambda x: 1 if x[0] == 'nlp' else 2 if x[0] == 'images' else 0)
+
+    labels = data_frame['application']
 
     # Get repo name array
-    repo_names_index = data_frame['repo_full_name'].values
-
-    # Initialize empty numpy array
-    # similarity_array = np.zeros((data_frame.shape[0], data_frame.shape[0]))
+    repo_names_index = data_frame.index.tolist()
 
     # JOB: Load pre-trained Doc2Vec model
     print('Loading pre-trained model ...')
     doc2vec_model = Doc2Vec.load(os.path.join(ROOT_DIR, 'DataCollection/data/doc2vec_model'))
 
-    doc_vecs = doc2vec_model.docvecs.doctag_syn0[:-1, :]
+    doc_vecs = [doc2vec_model.docvecs[name] for name in repo_names_index]
+
     print(len(doc_vecs))
     print(type(doc_vecs))
 
-    # for doc in doc_vecs:
-    # print(doc)
-
-    display_pca_scatterplot(doc_vecs)
+    display_pca_scatterplot(doc_vecs, labels)
 
 
 def calculate_similarity_row_vector(vectorized_readmes, row_index):
@@ -407,6 +418,45 @@ def calculate_similarities(data_frame):
     similarity_ranks_df.to_json(output_file)
 
 
+def compare_group_similarity(data_frame):
+    readme_scores = pd.read_json(os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_sims.json'))
+
+    # NLP repo indices
+    nlp_repos = data_frame['application'].apply(lambda s: 'nlp' in s if not isinstance(s, float) else False)
+    nlp_repos_index = nlp_repos[nlp_repos].index.tolist()
+
+    nlp_repos_index = list(set(nlp_repos_index).intersection(set(readme_scores.index.tolist())))
+
+    # Image repo indices
+    images_repos = data_frame['application'].apply(lambda s: 'images' in s if not isinstance(s, float) else False)
+    images_repos_index = images_repos[images_repos].index.tolist()
+
+    images_repos_index = list(set(images_repos_index).intersection(set(readme_scores.index.tolist())))
+
+    within_images = sum(readme_scores.loc[images_repos_index, images_repos_index].sum(skipna=True, axis=0)) / ((
+            len(images_repos_index) ** 2 - len(images_repos_index)))
+
+    within_nlp = sum(readme_scores.loc[nlp_repos_index, nlp_repos_index].sum(skipna=True, axis=0)) / ((
+            len(nlp_repos_index) ** 2 - len(nlp_repos_index)))
+
+    between = sum(readme_scores.loc[images_repos_index, nlp_repos_index].sum(skipna=True, axis=0)) / (
+            len(images_repos_index) * len(nlp_repos_index) - max(len(images_repos_index), len(nlp_repos_index)))
+
+    print('Within images similarity: %g' % round(within_images, 3))
+    print('Within nlp similarity: %g' % round(within_nlp, 3))
+    print('Between group similarity: %g' % round(between, 3))
+
+    weighted = (len(nlp_repos_index) * within_nlp + len(images_repos_index) * within_images) / (
+                len(nlp_repos_index) + len(
+            images_repos_index))
+
+    print(weighted)
+
+    ratio = weighted / between
+
+    print(ratio)
+
+
 if __name__ == '__main__':
     """
     Main method
@@ -415,7 +465,10 @@ if __name__ == '__main__':
     # JOB: Load data from file
     print('Loading data ...')
     full_readme_data = filter_data_frame(load_data_to_df('DataCollection/data/data.json', download_data=False),
-                                         has_english_readme=True)
+                                         has_english_readme=True, long_readme_only=True, min_length=200)
+
+    full_readme_data = full_readme_data.set_index(['repo_full_name'], drop=True)
+
     data_frame = load_data_to_df('DataCollection/data/filtered_data.json', download_data=False)
 
     # Filter data
@@ -424,14 +477,14 @@ if __name__ == '__main__':
     #                tablefmt='psql', showindex=True))
     # get_stats(data_frame)
 
-    # train_test_nn_type(full_readme_data, write_to_db=False)
+    train_test_nn_type(full_readme_data, write_to_db=False, set_index=False, load_data=True)
     # train_test_nn_application(full_readme_data, write_to_db=False)
     # model = train_test_doc2vec_nn_application(full_readme_data, 'nn_type', get_nn_type_from_architecture)
     # model = train_test_doc2vec_nn_application(data_frame, 'nn_application', nn_application_encoding)
 
     # JOB: Perform Doc2Vec embedding
     # print('Performing doc2vec ...')
-    model = perform_doc2vec_embedding(full_readme_data['readme_text'], train_model=False, vector_size=100, epochs=20)
+    # model = perform_doc2vec_embedding(full_readme_data['readme_text'], train_model=True, vector_size=100, epochs=20)
 
     # Calculate repository similarities based on readme texts
 
@@ -439,4 +492,7 @@ if __name__ == '__main__':
 
     # Visualize embedding
 
-    visualize_doc2vec_embedding(data_frame)
+    # data_frame = data_frame.set_index(['repo_full_name'], drop=True)
+    # visualize_doc2vec_embedding(full_readme_data)
+
+    # compare_group_similarity(full_readme_data)

@@ -134,7 +134,7 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False, seria
     # JOB: Iterate through repositories in data base
     for idx, row in tqdm(df_github.iterrows(), total=df_github.shape[0]):
         # Set model name (owner/repo) and owner
-        modelName = row['repo_full_name'].replace('/', '-')
+        modelName = row['repo_full_name']  # .replace('/', '-')  # TODO: Undo
         owner = 'https://github.com/' + row['repo_owner']
 
         # Create Neural Network and assign model name
