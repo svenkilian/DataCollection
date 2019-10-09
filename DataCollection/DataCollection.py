@@ -1,3 +1,7 @@
+"""
+This class implements a MongoDB Atlas Database Collection wrapper.
+"""
+
 from bson import ObjectId
 
 from config import ROOT_DIR

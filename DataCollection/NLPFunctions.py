@@ -1,4 +1,6 @@
-# Module implementing functions from the domain of natural language processing.
+"""
+This module implements methods from the domain of natural language processing.
+"""
 import multiprocessing
 import os
 import pickle
@@ -12,14 +14,29 @@ import spacy
 from gensim import corpora
 from gensim.models.doc2vec import Doc2Vec
 from gensim.test.utils import get_tmpfile
+import gensim.utils as utils
 from nltk import word_tokenize
 from nltk.corpus import wordnet as wn
 from nltk.stem.wordnet import WordNetLemmatizer
 from polyglot.text import Text
+from sklearn.externals import joblib
 from spacy.lang.en import English
 from tqdm import tqdm
 
 from config import ROOT_DIR
+
+CUSTOM_STOP_WORDS = ['license', 'model', 'training', 'network', 'keras', 'KERAS', 'python', 'machine', 'learning',
+                     'using', 'neural', 'input', 'train', 'weight', 'example', 'tensorflow', 'docker', 'environment',
+                     'layer', 'result', 'validation', 'project', 'create', 'library', 'dataset', 'data', 'val_acc',
+                     'val_loss', 'writeup', 'outlier', 'notebook', 'function', 'sample', 'trained', 'neumf',
+                     'implementation', 'class', 'weight', 'output', 'download', 'model_data', 'algorithm', 'import',
+                     'epoch', 'install', 'script', 'django', 'framework', 'application', 'client', 'pytorch', 'file',
+                     '--model', 'paper', 'feature', 'number', 'python3', 'directory', 'folder', 'based', 'language',
+                     'accuracy', 'layer', 'framework', 'crispr', 'flask', 'server', 'params',
+                     'database', 'y_train', 'default', 'weight', 'method', 'default', '--act', '--algo', 'evaluate',
+                     'accuracy', 'label', 'numpy', '--algo', 'package', 'default', 'framework', 'weight', 'method',
+                     'weight', 'example', 'prediction', 'layer', 'activation', '--act', 'y_train'
+                     ]
 
 
 class LemmaTokenizer(object):
@@ -31,18 +48,7 @@ class LemmaTokenizer(object):
     stop_words = nltk.corpus.stopwords.words('english')
 
     # Add additional domain specific stop words
-    stop_words.extend(['license', 'model', 'training', 'network', 'keras', 'KERAS', 'python', 'machine', 'learning',
-                       'using', 'neural', 'input', 'train', 'weight', 'example', 'tensorflow', 'docker', 'environment',
-                       'layer', 'result', 'validation', 'project', 'create', 'library', 'dataset', 'data', 'val_acc',
-                       'val_loss', 'writeup', 'outlier', 'notebook', 'function', 'sample', 'trained', 'neumf',
-                       'implementation', 'class', 'weight', 'output', 'download', 'model_data', 'algorithm', 'import',
-                       'epoch', 'install', 'script', 'django', 'framework', 'application', 'client', 'pytorch', 'file',
-                       '--model', 'paper', 'feature', 'number', 'python3', 'directory', 'folder', 'based', 'language',
-                       'accuracy', 'layer', 'framework', 'crispr', 'flask', 'server', 'params',
-                       'database', 'y_train', 'default', 'weight', 'method', 'default', '--act', '--algo', 'evaluate',
-                       'accuracy', 'label', 'numpy', '--algo', 'package', 'default', 'framework', 'weight', 'method',
-                       'weight', 'example', 'prediction', 'layer', 'activation', '--act', 'y_train'
-                       ])
+    stop_words.extend(CUSTOM_STOP_WORDS)
 
     def __init__(self):
         self.wnl = WordNetLemmatizer()
@@ -95,6 +101,7 @@ def get_lemma(word):
     :param word: Word to identify meaning of
     :return: Lemmatized word
     """
+
     lemma = wn.morphy(str(word))
     if lemma is None:
         return word
@@ -119,25 +126,33 @@ def prepare_text_for_lda(text):
     :param text: Text to prepare
     :return: Tokenized and preprocessed text
     """
+
     stop_words = nltk.corpus.stopwords.words('english')
-    stop_words.extend(['license', 'model', 'training', 'network', 'keras', 'KERAS', 'python', 'machine', 'learning',
-                       'using', 'neural', 'input', 'train', 'weight', 'example', 'tensorflow', 'docker', 'environment',
-                       'layer', 'result', 'validation', 'project', 'create', 'library', 'dataset', 'data', 'val_acc',
-                       'val_loss', 'writeup', 'outlier', 'notebook', 'function', 'sample', 'trained', 'neumf',
-                       'implementation', 'class', 'weight', 'output', 'download', 'model_data', 'algorithm', 'import',
-                       'epoch', 'install', 'script', 'django', 'framework', 'application', 'client', 'pytorch', 'file',
-                       '--model', 'paper', 'feature', 'number', 'python3', 'directory', 'folder', 'based', 'language',
-                       'accuracy', 'layer', 'framework', 'crispr', 'flask', 'server', 'params',
-                       'database', 'y_train', 'default', 'weight', 'method', 'default', '--act', '--algo', 'evaluate',
-                       'accuracy', 'label', 'numpy', '--algo', 'package', 'default', 'framework', 'weight', 'method',
-                       'weight', 'example', 'prediction', 'layer', 'activation', '--act', 'y_train'
-                       ])
+    stop_words.extend(CUSTOM_STOP_WORDS)
 
     en_stop = set(stop_words)
     tokens = tokenize(text)
     tokens = [str(token) for token in tokens if len(token) >= 4]
     tokens = [str(token) for token in tokens if token not in en_stop]
     tokens = [get_lemma(token) for token in tokens]
+
+    return tokens
+
+
+def preprocess_text(document):
+    """
+    Performs advanced preprocessing on a string and returns lemmatized list of tokens.
+
+    :param document: Document string to be preprocessed
+    :return: List of preprocessed tokens
+    """
+
+    stop_words = nltk.corpus.stopwords.words('english')
+    stop_words.extend(CUSTOM_STOP_WORDS)
+    en_stop = set(stop_words)
+    tokens = utils.tokenize(document, lowercase=True, deacc=True)
+    tokens = [str(token) for token in tokens if (token not in en_stop and not token.startswith('_'))]
+    tokens = [get_lemma2(token) for token in tokens]
 
     return tokens
 
@@ -172,7 +187,7 @@ def get_readme_langs(df):
     return df
 
 
-def text_preprocessing(text_series):
+def deprecated_text_preprocessing(text_series):
     """
     Applies text preprocessing to series containing strings.
 
@@ -268,6 +283,28 @@ def perform_lda(data_frame):
     return topics
 
 
+def tfidf_vectorize(data_frame):
+    """
+    Creates tf-idf represention for readme files stored in DataFrame
+    :param data_frame: DataFrame containing the readme texts to transform
+    :return: Vectorized readmes as matrix
+    """
+
+    count_vectorizer = joblib.load(os.path.join(ROOT_DIR, 'DataCollection/data/CV_trained.pkl'))
+    tfidf_transformer = joblib.load(os.path.join(ROOT_DIR, 'DataCollection/data/tf_idf_transformer.pkl'))
+
+    # Preprocess readmes
+    print('Pre-processing readmes ...')
+    # Extract feature matrix
+    vectorized_readmes = data_frame['readme_text']
+
+    # Fit count vectorizer and transform features
+    vectorized_readmes = count_vectorizer.transform(vectorized_readmes)
+    vectorized_readmes = tfidf_transformer.fit_transform(vectorized_readmes).todense()
+
+    return vectorized_readmes
+
+
 def read_corpus(readme_text_series, tokens_only=False):
     """
     Generator function for text pre-processing and tokenization.
@@ -279,18 +316,18 @@ def read_corpus(readme_text_series, tokens_only=False):
 
     for i, document in tqdm(readme_text_series.iteritems(), total=len(readme_text_series)):
         if tokens_only:
-            yield gensim.utils.simple_preprocess(document)
+            yield preprocess_text(document)
         else:
             # For training data, add tags
-            yield gensim.models.doc2vec.TaggedDocument(gensim.utils.simple_preprocess(document),
+            yield gensim.models.doc2vec.TaggedDocument(preprocess_text(document),
                                                        [i])
 
 
-def perform_doc2vec_embedding(readme_text_series, train_model=False, vector_size=20, epochs=40):
+def perform_doc2vec_embedding(readme_text_series, train_model=False, vector_size=20, epochs=40, dm_concat=0):
     """
     Performs doc2vec embedding on text corpus from data frame.
 
-    :param readme_text_series: Series containing document corpis in readme_text series
+    :param readme_text_series: Series containing document corpus in readme_text series
     :param train_model: Flag indicating whether to train doc2vec embedding from scratch
     :param vector_size: Size of representation vectors
     :param epochs: Number of training epochs
@@ -305,8 +342,8 @@ def perform_doc2vec_embedding(readme_text_series, train_model=False, vector_size
         # test_corpus = list(read_corpus(data_frame, tokens_only=True))
 
         # Initialize doc2vec model
-        model = gensim.models.doc2vec.Doc2Vec(vector_size=vector_size, min_count=2, epochs=epochs,
-                                              workers=multiprocessing.cpu_count())
+        model = gensim.models.doc2vec.Doc2Vec(vector_size=vector_size, min_count=5, epochs=epochs,
+                                              workers=multiprocessing.cpu_count(), dm_concat=dm_concat, window=6)
         # Build vocabulary
         print('Building vocabulary from corpus ...')
         model.build_vocab(train_corpus)

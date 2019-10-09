@@ -1,5 +1,29 @@
-# Standalone executable module implementing experimental NLP techniques to textual information.
+"""
+This module features a variety of methods for analyzing the data base, training the classifiers and training
+the document embedding.
+
+.. note:: Is is recommended that the methods are executed from the main method of this file by
+ commenting out the lines you do not want to execute.
+
+.. warning:: Be careful not to unintentionally run code by missing to uncomment code lines in the main method.
+
+How to use
+############
+
+Possible method calls are:
+
+* *get_stats*: Prints basic statistics of repositories in data frame to console.
+* *display_pca_scatterplot*: Shows scatter plot of dimensionally reduced data.
+* *perform_doc2vec_embedding*: Performs document embedding of readme files.
+Method lives in module :doc:`NLPFunctions`.
+
+Functions and methods
+#######################
+"""
+
 import warnings
+
+import joblib
 
 warnings.filterwarnings(action='ignore', category=UserWarning, module='gensim')
 import multiprocessing
@@ -19,6 +43,8 @@ import matplotlib
 from gensim.models import Doc2Vec
 from gensim.test.utils import get_tmpfile
 from sklearn.metrics.pairwise import cosine_similarity
+import seaborn as sns
+from sklearn.manifold import TSNE
 from tabulate import tabulate
 from tqdm import tqdm
 from sklearn.decomposition import PCA
@@ -27,12 +53,15 @@ from mpl_toolkits.mplot3d import Axes3D
 from Classifiers.AttributeClfs import train_test_doc2vec_nn_application, get_nn_type_from_architecture, \
     nn_application_encoding, train_test_nn_application, train_test_nn_type
 from HelperFunctions import load_data_to_df, filter_data_frame
-from NLPFunctions import read_corpus, perform_doc2vec_embedding
+from NLPFunctions import read_corpus, perform_doc2vec_embedding, tfidf_vectorize
 from scipy.stats import rankdata
 from config import ROOT_DIR
 from multiprocessing import Pool
 
 pd.set_option('mode.chained_assignment', None)
+plt.style.use('ggplot')
+font = {'family': 'normal', 'size': 12}
+plt.rc('font', **font)
 
 
 def get_stats(data_frame):
@@ -162,10 +191,11 @@ def analyze_references(data_frame):
     print(df)
 
 
-def analyze_topics(data_frame):
+def analyze_topics(data_frame, top_n=150):
     """
     Shows frequency statistics of topics and returns array of neural network types
 
+    :param top_n: Top-n topics to display
     :param data_frame: Data frame containing topics
     :return: Array with neural network types
     """
@@ -200,58 +230,116 @@ def analyze_topics(data_frame):
                  'lstm-neural-networks', 'generative-adversarial-network', 'gan', 'reinforcement-learning',
                  'deep-reinforcement-learning', 'autoencoder'}
 
+    time_series_topics = {'time-series', 'time-series-prediction', 'stock-price-prediction', 'forecast',
+                          'timeseries', 'forecasting', 'sequential-data', 'time-series-analysis', 'ecg', 'ecg-data',
+                          'ecg-signal', 'electrocardiogram', 'multivariate-timeseries', 'predictive-maintenance',
+                          'stock-market', 'stock', 'trading', 'algorithmic-trading', 'stock-trading'}
+
+    audio_topics = {'music-tagging', 'audio-classification', 'audio-processing', 'music-scores', 'music', 'audio',
+                    'acoustic-features'}
+
+    # Count number of repositories with time_series tags
+    # Replace synonymous types
+    data_frame['audio'] = data_frame['repo_tags'].apply(
+        lambda topic_list: 1 if (
+                topic_list is not None and len(set(topic_list).intersection(audio_topics)) > 0) else 0)
+
+    print('Number of audio repositories: %d' % sum(data_frame['audio']))
+
     # Filter by repositories with topic label from type_list
-    df = df[~df['Tag'].isin(type_list.union(stop_topics))].head(50)
+    df = df[~df['Tag'].isin(type_list.union(stop_topics))].head(top_n)
 
     # Print new data frame
-    print(df.head(60))
+    # print(df.head(top_n))
+
+    # print(tabulate(df, headers='keys',
+    #                tablefmt='psql', showindex=True))
 
     return df['Tag'].tolist()
 
 
-def display_pca_scatterplot(doc_vecs, labels, words=None, sample=0):
+def display_pca_scatterplot(doc_vecs, labels, two_d_plot=True, three_d_plot=True, tsne=False, domain=None):
     """
-    Show scatterplot of dimensionally reduced data.
+    Show scatter plot of dimensionally reduced data.
 
-    :param model: Trained gensim embedding model
-    :param words:
-    :param sample: Sample size
+    :type doc_vecs: object
     :return:
     """
 
-    # JOB: 2-dimension representation
-    reduced = PCA(n_components=2).fit_transform(doc_vecs)[:, :2]
+    if domain == 'application':
+        legend_labels = ('Natural Language Processing', 'Computer Vision', 'Numerical Prediction')
+    elif domain == 'architecture':
+        legend_labels = ('Convolutional NN', 'Recurrent NN')
+    else:
+        legend_labels = None
 
-    fig_1 = plt.figure(figsize=(6, 6))
-    fig_1.gca().scatter(reduced[:, 0], reduced[:, 1], edgecolor=None, c=labels, cmap=plt.cm.get_cmap('RdBu'), s=10)
+    if two_d_plot:
+        # JOB: 2-dimension representation
+        reduced = PCA(n_components=2).fit_transform(doc_vecs)[:, :2]
 
-    plt.show()
+        fig_1, ax = plt.subplots()
+        ax.set(xlabel='Principal Component 1',
+               ylabel='Principal Component 2')
+        scatter = ax.scatter(reduced[:, 0], reduced[:, 1], edgecolor=None, c=labels, cmap=plt.cm.get_cmap('RdBu'), s=10)
+        legend_1 = ax.legend(handles=scatter.legend_elements()[0],
+                             labels=legend_labels, loc='lower right', frameon=True,
+                             shadow=True, framealpha=1, facecolor='white')
+        ax.add_artist(legend_1)
+        plt.tick_params(axis='both', colors='black')
+        ax.xaxis.label.set_color('black')
+        ax.yaxis.label.set_color('black')
+        # ax.set_title('Visualization of Semantic Similarity')
+        plt.show()
 
-    # JOB: 3-dimensional representation
-    reduced = PCA(n_components=3).fit_transform(doc_vecs)[:, :3]
+        fig_1.savefig(os.path.join(ROOT_DIR, 'DataCollection/data/pca_plot.pdf'), dpi=400, bbox_inches='tight')
 
-    fig = plt.figure(figsize=(16, 12))
-    ax = Axes3D(fig)
-    scatter = ax.scatter(reduced[:, 0],
-                         reduced[:, 1],
-                         reduced[:, 2],
-                         c=labels,
-                         cmap=plt.cm.get_cmap('Dark2'),
-                         s=15,
-                         edgecolor='none',
-                         marker='o')
-    # plt.title("Semantic Tf-Idf-SVD reduced plot of Sincere-Insincere data distribution")
-    plt.xlabel("First dimension")
-    plt.ylabel("Second dimension")
-    plt.legend()
-    plt.xlim(-6, 6)
-    plt.ylim(-7.5, 5)
-    plt.gca().set_zlim(-4, 5)
-    plt.colorbar(scatter)
-    plt.show()
+    if three_d_plot:
+        # JOB: 3-dimensional representation
+        reduced = PCA(n_components=3).fit_transform(doc_vecs)[:, :3]
+
+        fig = plt.figure(figsize=(16, 12))
+        ax = fig.add_subplot(111, projection='3d')
+        scatter = ax.scatter(reduced[:, 0],
+                             reduced[:, 1],
+                             reduced[:, 2],
+                             c=labels,
+                             cmap=plt.cm.get_cmap('jet'),
+                             s=25,
+                             marker='o')
+
+        ax.set(xlabel='PC 1', ylabel='PC 2', zlabel='PC 3')
+
+        legend = ax.legend(handles=scatter.legend_elements()[0],
+                           labels=legend_labels, loc='lower right', frameon=True,
+                           shadow=True, framealpha=1, facecolor='white')
+        ax.add_artist(legend)
+
+        # plt.xlim(-2, 2)
+        # plt.ylim(-1, 2)
+        # plt.gca().set_zlim(-2, 2)
+        # plt.colorbar(scatter)
+        ax.view_init(elev=0, azim=45)
+        plt.show()
+
+    if tsne:
+        reduced = PCA(n_components=50).fit_transform(doc_vecs)
+        tsne = TSNE(n_components=2, verbose=1, perplexity=5, n_iter=1000)
+        tsne_results = pd.DataFrame(tsne.fit_transform(reduced), columns=['dim_1', 'dim_2'])
+        tsne_results['label'] = labels
+
+        plt.figure(figsize=(16, 10))
+        sns.scatterplot(
+            x='dim_1', y='dim_2',
+            hue='label',
+            palette=sns.color_palette('hls', 3),
+            data=tsne_results,
+            legend='full'
+        )
+
+        plt.show()
 
 
-def visualize_doc2vec_embedding(data_frame):
+def visualize_doc2vec_embedding(data_frame, show_tfidf_benchmark=False, application=True, architecture=True):
     """
     Calculates similarities between repositories based on their readme file's doc2vec representation.
 
@@ -259,16 +347,36 @@ def visualize_doc2vec_embedding(data_frame):
     :return:
     """
 
-    data_frame = data_frame[data_frame['application'].notna()]
+    labels = None
 
-    # data_frame['nn_type'] = data_frame['nn_type'].apply(
-    #     lambda x: 1 if x[0] == 'recurrent_type' else 2 if x[0] == 'conv_type' else 0)
-    # data_frame = data_frame[data_frame['nn_type'] != 0]
+    if application:
+        label_dict = {'nlp': 1, 'images': 2, 'prediction': 3}
+        data_frame = data_frame[data_frame['application'].notna()]
 
-    data_frame['application'] = data_frame['application'].apply(
-        lambda x: 1 if x[0] == 'nlp' else 2 if x[0] == 'images' else 0)
+        # JOB: Filter by repositories with only one class label
+        data_frame = data_frame[data_frame['application'].str.len() == 1]
 
-    labels = data_frame['application']
+        data_frame['application'] = data_frame['application'].apply(
+            lambda x: label_dict.get(x[0], 0))
+
+        data_frame = data_frame[data_frame['application'] != 3]
+        labels = data_frame['application']
+
+    if architecture:
+        data_frame = filter_data_frame(data_frame, has_architecture=True, reset_index=False)
+
+        print(data_frame['nn_type'])
+        label_dict = {'conv_type': 1, 'recurrent_type': 2}
+        data_frame = data_frame[data_frame['nn_type'].notna()]
+        data_frame = data_frame[data_frame['nn_type'].str.len() == 1]
+
+        data_frame['nn_type'] = data_frame['nn_type'].apply(
+            lambda x: label_dict.get(x[0], 0))
+
+        data_frame = data_frame[data_frame['nn_type'] != 0]
+        print(data_frame['nn_type'])
+
+        labels = data_frame['nn_type']
 
     # Get repo name array
     repo_names_index = data_frame.index.tolist()
@@ -282,10 +390,29 @@ def visualize_doc2vec_embedding(data_frame):
     print(len(doc_vecs))
     print(type(doc_vecs))
 
-    display_pca_scatterplot(doc_vecs, labels)
+    if application:
+        domain = 'application'
+    elif architecture:
+        domain = 'architecture'
+    else:
+        domain = None
+
+    display_pca_scatterplot(doc_vecs, labels, two_d_plot=True, three_d_plot=False, tsne=False, domain=domain)
+
+    if show_tfidf_benchmark:
+        doc_vecs = tfidf_vectorize(data_frame)
+        display_pca_scatterplot(doc_vecs, labels, two_d_plot=False, three_d_plot=True, tsne=False, domain=domain)
 
 
 def calculate_similarity_row_vector(vectorized_readmes, row_index):
+    """
+    Calculates row vector of similarity scores between row repository and all other repositories
+
+    :param vectorized_readmes: Matrix of vector representations of each document
+    :param row_index: Index of current row to be calculated
+    :return: Vector of similarity scores between current row and all columns
+    """
+
     # print('Current row index being processed: %d' % row_index)
     similarity_row = np.zeros(len(vectorized_readmes))
 
@@ -301,48 +428,66 @@ def calculate_similarity_row_vector(vectorized_readmes, row_index):
     return similarity_row
 
 
-def calculate_similarities(data_frame):
+def calculate_similarities(data_frame, vector_type='doc2vec'):
     """
     Calculates similarities between repositories based on their readme file's doc2vec representation.
 
-    :param data_frame: Data frame containing readme texts.
+    :param vector_type: Tag specifying which type of vectorization to process
+    :param data_frame: Data frame containing readme texts
     :return:
     """
 
     data_frame.reset_index(inplace=True, drop=True)
 
+    vectorized_readmes = None
+    row_indices = None
+
     # Get repo name array
     repo_names_index = data_frame['repo_full_name'].values
 
-    # Initialize empty numpy array
-    # similarity_array = np.zeros((data_frame.shape[0], data_frame.shape[0]))
+    if vector_type == 'doc2vec':
+        # JOB: Load pre-trained Doc2Vec model
+        print('Loading pre-trained model ...')
+        doc2vec_model = Doc2Vec.load(os.path.join(ROOT_DIR, 'DataCollection/data/doc2vec_model_new'))
 
-    # JOB: Load pre-trained Doc2Vec model
-    print('Loading pre-trained model ...')
-    doc2vec_model = Doc2Vec.load(os.path.join(ROOT_DIR, 'DataCollection/data/doc2vec_model'))
+        # Preprocess readmes
+        print('Pre-processing readmes ...')
+        print(data_frame.columns)
+        preprocessed_readmes = list(
+            read_corpus(
+                data_frame['readme_text'],
+                tokens_only=True))
 
-    # Preprocess readmes
-    print('Pre-processing readmes ...')
-    preprocessed_readmes = list(
-        read_corpus(data_frame['repo_full_name', 'readme_text'].set_index(['repo_full_name'], drop=True, inplace=True),
-                    tokens_only=True))
+        # Initialize empty array
+        vectorized_readmes = np.empty(
+            (len(preprocessed_readmes), doc2vec_model.vector_size))
 
-    # Initialize empty array
-    vectorized_readmes = np.empty(
-        (len(preprocessed_readmes), doc2vec_model.vector_size))
+        # JOB: Infer embedding representation for each repository
+        print('Vectorizing readmes ... \n')
+        for i, row in tqdm(enumerate(vectorized_readmes), total=len(vectorized_readmes)):
+            vectorized_readmes[i] = doc2vec_model.infer_vector(preprocessed_readmes[i])
 
-    print('Vectorizing readmes ... \n')
-    for i, row in tqdm(enumerate(vectorized_readmes), total=len(vectorized_readmes)):
-        vectorized_readmes[i] = doc2vec_model.infer_vector(preprocessed_readmes[i])
+        row_indices = range(vectorized_readmes.shape[0])
 
-    # Load vectorized readmes from saved model
-    # vectorized_readmes = doc2vec_model.docvecs
+    elif vector_type == 'tfidf':
+        count_vectorizer = joblib.load(os.path.join(ROOT_DIR, 'DataCollection/data/CV_trained.pkl'))
+        tfidf_transformer = joblib.load(os.path.join(ROOT_DIR, 'DataCollection/data/tf_idf_transformer.pkl'))
+
+        # Preprocess readmes
+        print('Pre-processing readmes ...')
+        # Extract feature matrix
+        vectorized_readmes = data_frame['readme_text']
+
+        # Fit count vectorizer and transform features
+        vectorized_readmes = count_vectorizer.transform(vectorized_readmes)
+        vectorized_readmes = tfidf_transformer.fit_transform(vectorized_readmes).todense()
+
+        row_indices = range(vectorized_readmes.shape[0])
 
     start_time = time.time()
     print('Calculating similarities ...')
 
     process_pool = Pool(processes=multiprocessing.cpu_count())
-    row_indices = range(vectorized_readmes.shape[0])
 
     similarity_array = np.asarray(
         process_pool.starmap(calculate_similarity_row_vector, zip(repeat(vectorized_readmes), row_indices)))
@@ -407,18 +552,25 @@ def calculate_similarities(data_frame):
 
     # Save similarity scores data frame to json
     print('Saving similarity scores ...')
-    output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_sims.json')  # Specify output name
+    output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_sims_new.json')  # Specify output name
     # output_file_tbl = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_sims.csv')  # Specify output name
     similarity_df.to_json(output_file)
     # similarity_df.to_csv(output_file_tbl)
 
     # Save similarity rank data frame to json
     print('Saving similarity ranks ...')
-    output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_sims_ranks.json')  # Specify output name
+    output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_sims_ranks_new.json')  # Specify output name
     similarity_ranks_df.to_json(output_file)
 
 
 def compare_group_similarity(data_frame):
+    """
+    Compares different groups with respect to their doc2vec vector similarity.
+
+    :param data_frame: DataFrame containing the vectors to compare
+    :return:
+    """
+
     readme_scores = pd.read_json(os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_sims.json'))
 
     # NLP repo indices
@@ -447,8 +599,8 @@ def compare_group_similarity(data_frame):
     print('Between group similarity: %g' % round(between, 3))
 
     weighted = (len(nlp_repos_index) * within_nlp + len(images_repos_index) * within_images) / (
-                len(nlp_repos_index) + len(
-            images_repos_index))
+            len(nlp_repos_index) + len(
+        images_repos_index))
 
     print(weighted)
 
@@ -464,10 +616,11 @@ if __name__ == '__main__':
 
     # JOB: Load data from file
     print('Loading data ...')
+    # full_data = load_data_to_df('DataCollection/data/data.json', download_data=False)
     full_readme_data = filter_data_frame(load_data_to_df('DataCollection/data/data.json', download_data=False),
-                                         has_english_readme=True, long_readme_only=True, min_length=200)
+                                         has_english_readme=True, long_readme_only=True, min_length=1)
 
-    full_readme_data = full_readme_data.set_index(['repo_full_name'], drop=True)
+    # full_readme_data = full_readme_data.set_index(['repo_full_name'], drop=True)
 
     data_frame = load_data_to_df('DataCollection/data/filtered_data.json', download_data=False)
 
@@ -475,24 +628,33 @@ if __name__ == '__main__':
     # data_frame = filter_data_frame(data_frame, has_architecture=False, has_english_readme=True)
     # print(tabulate(data_frame.head(20), headers='keys',
     #                tablefmt='psql', showindex=True))
-    # get_stats(data_frame)
 
-    train_test_nn_type(full_readme_data, write_to_db=False, set_index=False, load_data=True)
-    # train_test_nn_application(full_readme_data, write_to_db=False)
+    # get_stats(full_readme_data)
+    # analyze_topics(full_readme_data)
+
+    # train_test_nn_type(full_readme_data, write_to_db=False, set_index=False, load_data=False)
+    # train_test_nn_application(full_readme_data, set_index=False, write_to_db=False)
     # model = train_test_doc2vec_nn_application(full_readme_data, 'nn_type', get_nn_type_from_architecture)
-    # model = train_test_doc2vec_nn_application(data_frame, 'nn_application', nn_application_encoding)
+    # model = train_test_doc2vec_nn_application(full_readme_data, 'nn_application', nn_application_encoding, write_to_db=False)
 
     # JOB: Perform Doc2Vec embedding
-    # print('Performing doc2vec ...')
-    # model = perform_doc2vec_embedding(full_readme_data['readme_text'], train_model=True, vector_size=100, epochs=20)
+    print('Performing doc2vec ...')
+    model = perform_doc2vec_embedding(full_readme_data['readme_text'], train_model=False, vector_size=100, epochs=40,
+                                      dm_concat=0)
+    print('Number of document vectors: %d' % len(model.docvecs))
+    print('Document vector length: %d' % len(model.docvecs[0]))
+    word_list = ['neuron', 'network', 'recurrent', 'rain', 'image', 'video', 'time', 'method', 'data', 'set',
+                 'prediction', 'classification', 'stock', 'recognition', 'result', 'paper', 'text', 'sound', 'music',
+                 'wave']
+
+    for word in word_list:
+        print('Most similar to %s: %s' % (word, model.wv.most_similar(positive=word, topn=5)))
 
     # Calculate repository similarities based on readme texts
-
-    # calculate_similarities(data_frame)
+    # calculate_similarities(data_frame, vector_type='doc2vec')
 
     # Visualize embedding
-
-    # data_frame = data_frame.set_index(['repo_full_name'], drop=True)
-    # visualize_doc2vec_embedding(full_readme_data)
+    # data_frame = full_readme_data.set_index(['repo_full_name'], drop=True)
+    visualize_doc2vec_embedding(full_readme_data, show_tfidf_benchmark=False, application=True, architecture=False)
 
     # compare_group_similarity(full_readme_data)

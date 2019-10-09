@@ -1,4 +1,6 @@
-# Module implementing the conversion of a non-relational database with repositories to an RDF graph structure.
+"""
+This module implements the conversion of a non-relational database with repositories to an RDF graph structure.
+"""
 
 import datetime
 import sys
@@ -25,6 +27,8 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False, seria
     """
     Main method to be run on execution of file.
 
+    :param serialize_ontology: Write separate ontology file without data
+    :param architecture_filter: Filter by repositories with architecture information
     :param data_frame: Data frame with repository information
     :param output_name: Output file name
     """
@@ -335,6 +339,13 @@ def create_rdf_from_df(data_frame, output_name, architecture_filter=False, seria
 
 
 def filter_graph(graph):
+    """
+    Filter out tuples not needed for architecture embedding.
+
+    :param graph: Graph to filter
+    :return: Filtered graph
+    """
+
     ontology = 'https://w3id.org/nno/ontology#'  # Specify ontology locations
     ontologyURI = Namespace(ontology)  # Create ontology namespace
     dc = Namespace('http://purl.org/dc/terms/')
@@ -412,7 +423,10 @@ if __name__ == '__main__':
 
     # Filter for repositories with English readme and architecture information
     print('Filter repositories ...')
-    data_frame = filter_data_frame(df_github, has_architecture=True, has_english_readme=True, long_readme_only=True,
+    # data_frame = filter_data_frame(df_github, has_architecture=True, has_english_readme=True, long_readme_only=True,
+    #                                min_length=3000)
+
+    data_frame = filter_data_frame(df_github, has_architecture=True, has_english_readme=False, long_readme_only=False,
                                    min_length=3000)
 
     # Add reference repositories to dataframe
@@ -424,12 +438,12 @@ if __name__ == '__main__':
 
     # Export filtered dataframe to json
     print('Export filtered data ...')
-    output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data.json')  # Specify output name
+    output_file = os.path.join(ROOT_DIR, 'DataCollection/data/filtered_data_delete.json')  # Specify output name
     data_frame.to_json(output_file)
 
     # JOB: Create RDF Graph from DataFrame
     print('Creating graph ...')
-    create_rdf_from_df(data_frame, 'graph_data', serialize_ontology=False)
+    create_rdf_from_df(data_frame, 'graph_data_rdf', serialize_ontology=False, architecture_filter=True)
 
     # JOB: Filter by repositories with architecture information
     # architecture_data = df_github[(df_github['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (

@@ -1,4 +1,6 @@
-# This module implements helper functions providing ancillary functionality to other modules and functions
+"""
+This module implements helper functions providing ancillary functionality to other modules and functions.
+"""
 
 import datetime
 import json
@@ -53,6 +55,7 @@ def identify_language(text):
     :param text: String to use for language identification
     :return: Language name (English)
     """
+
     try:
         if text is not ('' or None):
             text = Text(text)
@@ -158,7 +161,7 @@ def extract_from_readme(response):
     Gets plain text from readme file.
 
     :param response: Res
-    :return: Plain plain_text of readme file
+    :return: Plain plain_text, link_list and reference_list of readme file
     """
     plain_text = None
     link_list = []
@@ -208,7 +211,7 @@ def extract_from_readme(response):
 
 def get_data_from_collection(path_to_data, collection_name):
     """
-    Retrieve data from database collection and store locally to file.
+    Retrieves data from database collection and store locally to file.
 
     :param path_to_data: Path to export location
     :param collection_name: Name of location to retrieve
@@ -274,6 +277,12 @@ def load_data_to_df(file_path, download_data=False):
 
 
 def get_layer_type_name(layer_type):
+    """
+    Transforms keras layer type name into full name
+    :param layer_type: Keras layer type name
+    :return: Full layer type name
+    """
+
     translation_dict = {
         'Dense': 'Dense Layer',
         'Dropout': 'Dropout Layer',
@@ -336,6 +345,12 @@ def get_layer_type_name(layer_type):
 
 
 def get_loss_function_name(function_name):
+    """
+    Transforms keras loss function name into full loss function name
+    :param function_name: Keras loss function name to convert
+    :return: Full loss function name
+    """
+
     translation_dict = {
         'mean_squared_error': 'Mean Squared Error',
         'mse': 'Mean Squared Error',
@@ -361,6 +376,13 @@ def get_loss_function_name(function_name):
 
 
 def get_optimizer_name(optimizer):
+    """
+    Transforms keras optimizer name into full optimizer name
+
+    :param optimizer: Keras optimizer name
+    :return: Full optimizer name
+    """
+
     translation_dict = {
         'SGD': 'Stochastic Gradient Descent Optimizer',
         'RMSprop': 'RMSProp Optimizer',
@@ -377,18 +399,20 @@ def get_optimizer_name(optimizer):
 
 
 def filter_data_frame(data_frame, has_architecture=False, has_english_readme=False, no_behavioral_cloning=False,
-                      long_readme_only=False, min_length=1000):
+                      long_readme_only=False, min_length=1000, reset_index=True):
     """
-    Filters repository dataframe by specified attributes.
+    Filters repository DataFrame by specified attributes.
 
-    :param data_frame:
-    :param has_architecture:
-    :param has_english_readme:
-    :param no_behavioral_cloning:
-    :param long_readme_only:
-    :param min_length:
-    :return:
+    :param data_frame: DataFrame containing the data to be filtered
+    :param has_architecture: Flag indicating whether to filter by availability of architecture information
+    :param has_english_readme: Flag indicating whether to filter by readme language being English
+    :param no_behavioral_cloning: Flag indicating whether to exclude behavior cloning repositories
+    :param long_readme_only: Flag indicating whether to only include repositories with a minimum readme length as
+    specified with min_length attribute
+    :param min_length: Attribute specifying minimum length if long_readme_only flag is set to true
+    :return: Filtered DataFrame
     """
+
     # JOB: Filter by repositories with architecture information
     if has_architecture:
         data_frame = data_frame[(data_frame['h5_data'].apply(func=lambda x: x.get('extracted_architecture'))) | (
@@ -408,7 +432,8 @@ def filter_data_frame(data_frame, has_architecture=False, has_english_readme=Fal
     if long_readme_only:
         data_frame = data_frame[data_frame['readme_text'].str.len() > min_length]
 
-    # JOB: Reset index
-    data_frame.reset_index(inplace=True, drop=True)  # Reset index
+    if reset_index:
+        # JOB: Reset index
+        data_frame.reset_index(inplace=True, drop=True)  # Reset index
 
     return data_frame

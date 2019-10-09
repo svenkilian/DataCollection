@@ -1,3 +1,7 @@
+"""
+This module implements a method to collect additional data from GitHub.
+"""
+
 import multiprocessing
 from itertools import repeat
 from multiprocessing import Pool
@@ -19,6 +23,14 @@ token_cycle = len(tokens)
 
 
 def retrieve_attributes(attributes, repo):
+    """
+    Retrieves additional GitHub repository attributes.
+
+    :param attributes: Attributes to retrieve from GitHub repository
+    :param repo: Repository name to retrieve attributes from
+    :return: List of repository _id, repo_full_name and retrieved attributes
+    """
+
     global token_counter, token_cycle, tokens
 
     api_url = 'https://api.github.com/repos/' + repo[1]

@@ -1,6 +1,9 @@
-'''
+"""
 This module provides methods to obtain RDF graph embeddings.
-'''
+
+.. note:: The RDF graph for the embedding has to be exported in the .nt format and filtered
+by the attributes you would like included in the embedding.
+"""
 
 import random
 import sys
@@ -215,11 +218,11 @@ def create_embedding(graph_file_name):
     # sg/cbow features iterations window negative hops random walks
 
     print('\nSaving embedding model ...')
-    model.save(os.path.join(data_dir, 'SG_15'))
+    model.save(os.path.join(data_dir, 'SG_'))
     vectors = model.wv
 
     print('\nSaving vectors ...')
-    vectors.save_word2vec_format(os.path.join(data_dir, 'SG_15.txt'), binary=False)
+    vectors.save_word2vec_format(os.path.join(data_dir, 'SG_15_.txt'), binary=False)
 
 
 def load_model_and_vectors(model_name):

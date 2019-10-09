@@ -1,6 +1,7 @@
 """
 This module implements methods to extract the neural network architecture from h5 files or .py files.
 """
+
 import os
 import random
 import re
@@ -40,6 +41,12 @@ neuronStoplist = ['add', 'dot', 'subtract', 'multiply', 'average', 'maximum', 'm
 
 
 def get_activation_function(function_name):
+    """
+    Transform keras activation function name into full activation function name
+    :param function_name: Keras activation function name
+    :return: Full activation function name
+    """
+
     translation_dict = {
         'relu': 'Rectified Linear Unit',
         'linear': 'Linear',

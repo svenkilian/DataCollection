@@ -364,11 +364,11 @@ def search_repos(start_date, end_date, tokens):
         if h5_model_layers:
             n_layers = len(h5_model_layers)
             n_neurons = sum(h5_model_layers.get(key).get('nr_neurons') for key in h5_model_layers.keys() if
-                            h5_model_layers.get(key).get('nr_neurons') is not ('?' or None))
+                            h5_model_layers.get(key).get('nr_neurons') is not None)
         elif py_model_layers:
             n_layers = len(py_model_layers)
             n_neurons = sum(py_model_layers.get(key).get('nr_neurons') for key in py_model_layers.keys()
-                            if py_model_layers.get(key).get('nr_neurons') is not ('?' or None))
+                            if py_model_layers.get(key).get('nr_neurons') is not None)
 
         # JOB: Save meta data to item dict
         # Specify repo meta data to be extracted from API response
@@ -458,12 +458,12 @@ if __name__ == '__main__':
     """
 
     # Specify start and end search dates
-    start = datetime.date(2019, 2, 1)  # Letzter Stand: 2019, 1, 1 - 2019, 6, 8
+    start = datetime.date(2019, 2, 1)  # Memo: Keras release date: 2015-03-27
     end = datetime.date(2019, 6, 9)
     n_days = (end - start).days + 1
     n_macro_periods = 4
     print('Searching for repositories between %s and %s\n'
-          'Partionioning into %d macro periods\n\n' % (start.isoformat(), end.isoformat(), n_macro_periods))
+          'Partitioning into %d macro periods\n\n' % (start.isoformat(), end.isoformat(), n_macro_periods))
 
     if n_macro_periods > n_days:
         # If trying to split up time frame into more time periods than days, limit to n_days
